@@ -198,6 +198,9 @@ export default function AdminDashboard() {
                             <Link href="/admin/item-suggestions" className="flex items-center gap-2 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-sm rounded-xl transition-all whitespace-nowrap">
                                 💡 Suggestions
                             </Link>
+                            <Link href="/admin/inventory" className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm rounded-xl transition-all whitespace-nowrap">
+                                📦 Inventory
+                            </Link>
                             <button
                                 onClick={() => { localStorage.removeItem("adminToken"); window.location.href = "/admin"; }}
                                 className="px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-xl transition-all ml-auto sm:ml-2 whitespace-nowrap"

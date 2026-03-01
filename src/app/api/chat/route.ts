@@ -15,6 +15,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { generateOrderId } from "@/lib/orderIdUtils";
 import { FieldValue } from "firebase-admin/firestore";
 import { detectOrderIntent, processOrder, MenuItemForEngine } from "@/lib/order-engine";
+import { deductInventoryForOrder } from "@/services/inventoryService";
 
 export const runtime = "nodejs";
 
@@ -357,6 +358,18 @@ Keep it concise and fun with emojis!`;
                         description: `Order #${orderId}`,
                         createdAt: new Date().toISOString(),
                     });
+
+                    // Auto-deduct raw ingredient stock via recipe mappings
+                    try {
+                        const orderItemsForInventory = cart.map((c: any) => ({
+                            menuItemId: c.item_id || c.id,
+                            menuItemName: c.name,
+                            quantity: c.quantity,
+                        }));
+                        await deductInventoryForOrder(transaction, orderItemsForInventory, orderId);
+                    } catch (invErr) {
+                        console.warn("[Chat] Inventory deduction note:", invErr instanceof Error ? invErr.message : invErr);
+                    }
                 });
 
                 return NextResponse.json({
@@ -548,6 +561,18 @@ Keep it concise and fun with emojis!`;
                         description: `Jarvis Order #${orderId}`,
                         createdAt: new Date().toISOString(),
                     });
+
+                    // Auto-deduct raw ingredient stock via recipe mappings
+                    try {
+                        const orderItemsForInventory = cart.map((c: any) => ({
+                            menuItemId: c.item_id || c.id,
+                            menuItemName: c.name,
+                            quantity: c.quantity,
+                        }));
+                        await deductInventoryForOrder(transaction, orderItemsForInventory, orderId);
+                    } catch (invErr) {
+                        console.warn("[Chat] Inventory deduction note:", invErr instanceof Error ? invErr.message : invErr);
+                    }
                 });
 
                 return NextResponse.json({

@@ -13,6 +13,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { getAuthenticatedUser } from "@/lib/user-auth";
 import { generateOrderId } from "@/lib/orderIdUtils";
 import { FieldValue, DocumentSnapshot } from "firebase-admin/firestore";
+import { deductInventoryForOrder } from "@/services/inventoryService";
 
 export const runtime = "nodejs";
 
@@ -182,6 +183,19 @@ export async function POST(req: NextRequest) {
                 transactionId: txnRef.id,
                 createdAt: new Date().toISOString(),
             });
+
+            // 3.5 Auto-deduct raw ingredient stock via recipe mappings
+            try {
+                const orderItemsForInventory = items.map((item: any) => ({
+                    menuItemId: item.id,
+                    menuItemName: item.name,
+                    quantity: item.quantity,
+                }));
+                await deductInventoryForOrder(transaction, orderItemsForInventory, orderId);
+            } catch (invErr) {
+                // Log but don't block order if no recipe mappings exist
+                console.warn("[Orders] Inventory deduction note:", invErr instanceof Error ? invErr.message : invErr);
+            }
         });
 
         return NextResponse.json({ success: true, orderId });

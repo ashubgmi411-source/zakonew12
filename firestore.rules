@@ -114,6 +114,30 @@ service cloud.firestore {
       allow write: if false; // Server-side only via Admin SDK
     }
 
+    // ─── Inventory Items ────────────────────────────
+    // Read/Write: DENY — managed via /api/admin/inventory (Admin SDK)
+    match /inventory_items/{itemId} {
+      allow read, write: if false;
+    }
+
+    // ─── Stock Logs ─────────────────────────────────
+    // Read/Write: DENY — managed via Admin SDK
+    match /stock_logs/{logId} {
+      allow read, write: if false;
+    }
+
+    // ─── Menu Recipe Mapping ────────────────────────
+    // Read/Write: DENY — managed via /api/admin/inventory/recipe-mapping (Admin SDK)
+    match /menu_recipe_mapping/{mappingId} {
+      allow read, write: if false;
+    }
+
+    // ─── Daily Stock Snapshots ──────────────────────
+    // Read/Write: DENY — managed via Admin SDK
+    match /daily_stock_snapshots/{snapshotId} {
+      allow read, write: if false;
+    }
+
     // ─── Catch-all ──────────────────────────────────
     // Deny everything else by default
     match /{document=**} {
