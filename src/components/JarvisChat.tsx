@@ -204,44 +204,48 @@ export default function JarvisChat() {
 
     return (
         <>
-            {/* Floating Trigger Button */}
+            {/* ═══ Floating Orb Trigger ═══ */}
             <motion.button
                 onClick={() => setOpen(!open)}
-                className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 text-zayko-950 shadow-[0_8px_30px_rgba(251,191,36,0.4)] flex items-center justify-center text-3xl hover:scale-110 active:scale-95 transition-all border border-white/20"
-                whileTap={{ scale: 0.9 }}
+                className="fixed bottom-24 right-4 z-50 w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 border-gold-400/30 breathing-orb"
+                style={{
+                    background: 'radial-gradient(circle at 35% 35%, #fbbf24, #d4a017, #92400e)',
+                }}
+                whileTap={{ scale: 0.85 }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
                 {open ? (
-                    <span className="text-xl">✕</span>
+                    <span className="text-xl text-zayko-950 font-bold">✕</span>
                 ) : (
-                    <motion.span
-                        animate={{
-                            rotate: [0, -10, 10, -10, 10, 0],
-                        }}
-                        transition={{ repeat: Infinity, duration: 4, repeatDelay: 2 }}
-                    >
-                        🤖
-                    </motion.span>
+                    <span className="text-2xl drop-shadow-lg">🤖</span>
+                )}
+                {/* Pulsing ring behind orb */}
+                {!open && (
+                    <span className="absolute inset-0 rounded-full border-2 border-gold-400/40 animate-ping" style={{ animationDuration: '3s' }} />
                 )}
                 {/* Notification Badge */}
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-zayko-900 animate-pulse"></div>
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-zayko-900 shadow-lg shadow-emerald-500/30">
+                    <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
+                </div>
             </motion.button>
 
-            {/* Chat Panel */}
+            {/* ═══ Chat Panel ═══ */}
             <AnimatePresence>
                 {open && (
                     <motion.div
-                        initial={{ opacity: 0, y: 30, scale: 0.9, transformOrigin: "bottom right" }}
+                        initial={{ opacity: 0, y: 40, scale: 0.85 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 30, scale: 0.9 }}
-                        className="fixed bottom-40 right-4 left-4 sm:left-auto sm:right-6 z-50 sm:w-[380px] h-[550px] max-h-[80vh] flex flex-col rounded-3xl overflow-hidden border border-white/[0.08] shadow-[0_32px_64px_rgba(0,0,0,0.6)] bg-zayko-900/90 backdrop-blur-2xl"
+                        exit={{ opacity: 0, y: 40, scale: 0.85 }}
+                        transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                        className="fixed bottom-44 right-4 left-4 sm:left-auto sm:right-6 z-50 sm:w-[380px] h-[550px] max-h-[80vh] flex flex-col rounded-3xl overflow-hidden border border-white/[0.08] shadow-[0_32px_64px_rgba(0,0,0,0.7),_0_0_40px_rgba(251,191,36,0.08)] bg-zayko-900/95 backdrop-blur-2xl"
                     >
                         {/* Header */}
-                        <div className="px-6 py-5 border-b border-white/[0.06] bg-gradient-to-r from-gold-400/10 to-transparent flex items-center justify-between">
+                        <div className="px-6 py-5 border-b border-white/[0.06] bg-gradient-to-r from-gold-400/10 via-gold-400/5 to-transparent flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="relative">
-                                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-gold-400 to-gold-600 flex items-center justify-center text-2xl shadow-lg shadow-gold-500/20">
+                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-gold-500/30" style={{ background: 'radial-gradient(circle at 35% 35%, #fbbf24, #d4a017)' }}>
                                         🤖
                                     </div>
                                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-zayko-900 rounded-full"></span>
@@ -251,7 +255,7 @@ export default function JarvisChat() {
                                     <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest leading-none mt-1">Order Engine Active</p>
                                 </div>
                             </div>
-                            <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zayko-400 hover:text-white transition-colors">✕</button>
+                            <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zayko-400 hover:text-white hover:bg-white/10 transition-all active:scale-90">✕</button>
                         </div>
 
                         {/* Chat Messages */}
@@ -259,13 +263,14 @@ export default function JarvisChat() {
                             {messages.map((msg, i) => (
                                 <motion.div
                                     key={i}
-                                    initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
+                                    initial={{ opacity: 0, x: msg.role === "user" ? 20 : -20, y: 8 }}
+                                    animate={{ opacity: 1, x: 0, y: 0 }}
+                                    transition={{ duration: 0.25, ease: "easeOut" }}
                                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                                 >
                                     <div className="max-w-[85%]">
                                         <div className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ${msg.role === "user"
-                                            ? "bg-gold-500 text-zayko-950 font-bold rounded-tr-sm"
+                                            ? "bg-gradient-to-br from-gold-500 to-gold-400 text-zayko-950 font-bold rounded-tr-sm shadow-gold-500/20"
                                             : msg.structured?.status === "ORDER_CONFIRMED"
                                                 ? "bg-emerald-500/10 border border-emerald-500/30 text-zayko-100 rounded-tl-sm"
                                                 : msg.structured?.status === "ITEM_NOT_FOUND" || msg.structured?.status === "STOCK_ERROR"
@@ -285,7 +290,7 @@ export default function JarvisChat() {
                                                 <button
                                                     onClick={() => handleConfirmOrder(msg.structured!)}
                                                     disabled={processing}
-                                                    className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-black uppercase tracking-wider hover:bg-emerald-400 active:scale-95 transition-all disabled:opacity-50"
+                                                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-xs font-black uppercase tracking-wider hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all disabled:opacity-50"
                                                 >
                                                     ✅ Confirm Order
                                                 </button>
@@ -309,9 +314,9 @@ export default function JarvisChat() {
                                 <div className="flex justify-start">
                                     <div className="bg-white/5 border border-white/[0.08] px-4 py-3 rounded-2xl rounded-tl-sm">
                                         <div className="flex items-center gap-1.5">
-                                            <span className="w-1.5 h-1.5 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                                            <span className="w-1.5 h-1.5 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                                            <span className="w-1.5 h-1.5 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                                            <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                                            <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                                            <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
                                         </div>
                                     </div>
                                 </div>
@@ -329,13 +334,13 @@ export default function JarvisChat() {
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     placeholder="2 samosa aur 1 chai..."
-                                    className="w-full bg-white/5 border border-white/[0.1] rounded-2xl py-4 pl-5 pr-14 text-white text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/30 transition-all placeholder:text-zayko-600 font-medium"
+                                    className="w-full bg-white/5 border border-white/[0.1] rounded-2xl py-4 pl-5 pr-14 text-white text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/30 focus:border-gold-400/20 focus:shadow-[0_0_20px_rgba(251,191,36,0.1)] transition-all placeholder:text-zayko-600 font-medium"
                                     disabled={processing}
                                 />
                                 <button
                                     onClick={() => handleSend()}
                                     disabled={processing || !input.trim()}
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-gold-400 text-zayko-900 flex items-center justify-center transition-all active:scale-90 disabled:opacity-30 disabled:grayscale"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-500 text-zayko-900 flex items-center justify-center transition-all active:scale-85 disabled:opacity-30 disabled:grayscale shadow-lg shadow-gold-500/20"
                                 >
                                     <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" />
