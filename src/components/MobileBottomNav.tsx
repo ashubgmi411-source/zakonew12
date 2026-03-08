@@ -1,7 +1,7 @@
 /**
- * MobileBottomNav — Futuristic floating bottom navigation for mobile.
+ * MobileBottomNav — Premium floating bottom navigation.
  * Shows: Menu | Orders | Wallet | Profile
- * Hidden on desktop (md+) and on admin/stock routes.
+ * Hidden on desktop (md+) and admin/stock routes.
  */
 
 "use client";
@@ -10,13 +10,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
-    { href: "/", label: "Menu", icon: "🍽️", activeIcon: "🍽️" },
-    { href: "/orders", label: "Orders", icon: "📋", activeIcon: "📋" },
-    { href: "/wallet", label: "Wallet", icon: "💰", activeIcon: "💰" },
-    { href: "/profile", label: "Profile", icon: "👤", activeIcon: "👤" },
+    { href: "/", label: "Menu", icon: "🍽️" },
+    { href: "/orders", label: "Orders", icon: "📋" },
+    { href: "/wallet", label: "Wallet", icon: "💰" },
+    { href: "/profile", label: "Profile", icon: "👤" },
 ];
 
 export default function MobileBottomNav() {
@@ -24,7 +24,6 @@ export default function MobileBottomNav() {
     const { user } = useAuth();
     const { itemCount } = useCart();
 
-    // Hide on admin, stock, and auth routes
     if (!user) return null;
     if (pathname?.startsWith("/admin")) return null;
     if (pathname?.startsWith("/stock")) return null;
@@ -33,8 +32,8 @@ export default function MobileBottomNav() {
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden px-3 pb-2">
-            {/* Floating glass container */}
-            <div className="bg-zayko-900/80 backdrop-blur-2xl border border-white/[0.08] shadow-[0_-8px_40px_rgba(0,0,0,0.4)] rounded-2xl overflow-hidden">
+            {/* Premium glass container */}
+            <div className="premium-bottom-nav overflow-hidden">
                 <div className="grid grid-cols-4 px-2 py-1 relative">
                     {navItems.map((item) => {
                         const isActive = item.href === "/"
@@ -45,39 +44,53 @@ export default function MobileBottomNav() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl transition-all duration-200 relative ${isActive
-                                    ? "text-gold-400"
-                                    : "text-zayko-500 active:scale-90"
+                                className={`flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl transition-all duration-300 relative ${isActive
+                                        ? "text-gold-400"
+                                        : "text-zayko-500 active:scale-90"
                                     }`}
                             >
-                                {/* Active glow indicator */}
+                                {/* Active indicator bar */}
                                 {isActive && (
                                     <motion.div
-                                        layoutId="nav-indicator"
-                                        className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-gold-400 shadow-[0_2px_10px_rgba(251,191,36,0.5)]"
+                                        layoutId="mobile-nav-indicator"
+                                        className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-gold-400 to-gold-500 shadow-[0_2px_12px_rgba(251,191,36,0.5)]"
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}
 
-                                {/* Active background glow */}
+                                {/* Active glow bg */}
                                 {isActive && (
                                     <motion.div
-                                        layoutId="nav-bg"
+                                        layoutId="mobile-nav-bg"
                                         className="absolute inset-1 rounded-xl bg-gold-400/[0.06]"
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}
 
-                                <span className={`text-lg relative z-10 transition-transform duration-200 ${isActive ? 'scale-110' : ''}`}>
+                                <motion.span
+                                    className={`text-lg relative z-10`}
+                                    animate={isActive ? { scale: 1.15 } : { scale: 1 }}
+                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                >
                                     {item.icon}
-                                    {/* Cart badge on Menu */}
-                                    {item.href === "/" && itemCount > 0 && (
-                                        <span className="absolute -top-1.5 -right-2.5 w-4.5 h-4.5 bg-gradient-to-br from-red-500 to-red-600 text-white text-[9px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-red-500/30 badge-pop">
-                                            {itemCount > 9 ? "9+" : itemCount}
-                                        </span>
-                                    )}
-                                </span>
-                                <span className={`text-[10px] font-semibold relative z-10 ${isActive ? "text-gold-400" : "text-zayko-500"}`}>
+                                    {/* Cart badge */}
+                                    <AnimatePresence>
+                                        {item.href === "/" && itemCount > 0 && (
+                                            <motion.span
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                exit={{ scale: 0 }}
+                                                transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                                                className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 bg-gradient-to-br from-red-500 to-red-600 text-white text-[8px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-red-500/30 px-0.5"
+                                            >
+                                                {itemCount > 9 ? "9+" : itemCount}
+                                            </motion.span>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.span>
+
+                                <span className={`text-[10px] font-semibold relative z-10 transition-colors duration-200 ${isActive ? "text-gold-400" : "text-zayko-500"
+                                    }`}>
                                     {item.label}
                                 </span>
                             </Link>
@@ -85,7 +98,7 @@ export default function MobileBottomNav() {
                     })}
                 </div>
 
-                {/* Safe area for iPhones with notch */}
+                {/* iPhone safe area */}
                 <div className="h-[env(safe-area-inset-bottom)]" />
             </div>
         </nav>

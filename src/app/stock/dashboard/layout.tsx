@@ -7,7 +7,6 @@ import { usePathname, useRouter } from "next/navigation";
 const NAV_ITEMS = [
     { href: "/stock/dashboard", label: "Dashboard", icon: "📊", exact: true },
     { href: "/stock/dashboard/inventory", label: "Inventory", icon: "📦" },
-    { href: "/stock/dashboard/forecast", label: "Forecast", icon: "📈" },
     { href: "/stock/dashboard/suggestions", label: "Suggestions", icon: "💡" },
 ];
 
@@ -49,8 +48,8 @@ export default function StockDashboardLayout({ children }: { children: React.Rea
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive(item)
-                                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shadow-lg shadow-emerald-500/5"
-                                        : "text-zayko-400 hover:text-white hover:bg-white/5"
+                                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shadow-lg shadow-emerald-500/5"
+                                    : "text-zayko-400 hover:text-white hover:bg-white/5"
                                     }`}
                             >
                                 <span className="text-lg">{item.icon}</span>
@@ -92,8 +91,8 @@ export default function StockDashboardLayout({ children }: { children: React.Rea
                                     href={item.href}
                                     onClick={() => setSidebarOpen(false)}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${isActive(item)
-                                            ? "bg-emerald-500/15 text-emerald-400"
-                                            : "text-zayko-400 hover:text-white hover:bg-white/5"
+                                        ? "bg-emerald-500/15 text-emerald-400"
+                                        : "text-zayko-400 hover:text-white hover:bg-white/5"
                                         }`}
                                 >
                                     <span className="text-lg">{item.icon}</span>

@@ -13,7 +13,7 @@ export default function MenuCard({ id, name, price, category, available, quantit
     const inCart = cartItem ? cartItem.quantity : 0;
     const [flyAnim, setFlyAnim] = useState(false);
     const [showCustomization, setShowCustomization] = useState(false);
-    const [morphAnim, setMorphAnim] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
     const cardRef = useRef<HTMLDivElement>(null);
     const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
@@ -33,8 +33,8 @@ export default function MenuCard({ id, name, price, category, available, quantit
 
         const x = (clientX - rect.left) / rect.width;
         const y = (clientY - rect.top) / rect.height;
-        const tiltX = (y - 0.5) * -8;
-        const tiltY = (x - 0.5) * 8;
+        const tiltX = (y - 0.5) * -6;
+        const tiltY = (x - 0.5) * 6;
         setTilt({ x: tiltX, y: tiltY });
     }, []);
 
@@ -72,86 +72,128 @@ export default function MenuCard({ id, name, price, category, available, quantit
             selectedOptions
         });
         setFlyAnim(true);
-        setMorphAnim(true);
-        setTimeout(() => setFlyAnim(false), 400);
-        setTimeout(() => setMorphAnim(false), 400);
-        toast.success(`${name} added to cart! 🛒`, {
+        setShowSuccess(true);
+        setTimeout(() => setFlyAnim(false), 500);
+        setTimeout(() => setShowSuccess(false), 1200);
+        toast.success(`${name} added to cart!`, {
             style: {
-                background: "#0a1628",
-                color: "#e2e8f0",
+                background: "rgba(10, 22, 40, 0.95)",
+                color: "#f1f5f9",
                 border: "1px solid rgba(251,191,36,0.2)",
+                backdropFilter: "blur(20px)",
+                borderRadius: "1rem",
+                fontSize: "0.875rem",
             },
             iconTheme: { primary: "#fbbf24", secondary: "#050b14" },
+            duration: 1500,
         });
     };
 
     const categoryEmoji = category === "beverages" ? "☕" : category === "snacks" ? "🍿" : category === "meals" ? "🍱" : category === "desserts" ? "🍰" : "🍽️";
+    const isOutOfStock = !available || quantity <= 0;
 
     return (
         <>
-            <div
+            <motion.div
                 ref={cardRef}
                 onMouseMove={handleTilt}
                 onMouseLeave={resetTilt}
                 onTouchMove={handleTilt}
                 onTouchEnd={resetTilt}
-                onClick={() => !available && toast.error("Item currently unavailable")}
+                onClick={() => isOutOfStock && toast.error("Item currently unavailable")}
                 style={{
-                    transform: `perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(${tilt.x !== 0 || tilt.y !== 0 ? 1.03 : 1})`,
-                    transition: 'transform 0.15s ease-out',
+                    transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+                    transition: 'transform 0.2s ease-out',
                     willChange: 'transform',
                 }}
-                className={`flex flex-col bg-zayko-800/60 border border-white/[0.06] rounded-2xl overflow-hidden group cursor-pointer menu-card-premium hover:border-gold-400/20 hover:shadow-[0_8px_30px_rgba(251,191,36,0.08)] ${!available ? "opacity-60 grayscale-[0.3]" : ""}`}
+                className={`flex flex-col food-card-premium cursor-pointer group ${isOutOfStock ? "opacity-50 grayscale-[0.3]" : ""}`}
+                whileHover={{ y: -6, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } }}
             >
-                {/* Image Section — fixed aspect ratio */}
+                {/* ── Image Section ── */}
                 <div className="relative aspect-[4/3] bg-gradient-to-br from-zayko-800 to-zayko-700 overflow-hidden">
                     {image ? (
-                        <img src={image} alt={name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                        <img
+                            src={image}
+                            alt={name}
+                            className="w-full h-full object-cover food-card-image"
+                            loading="lazy"
+                        />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl opacity-40 group-hover:scale-110 transition-transform duration-500">
+                        <div className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl opacity-30 food-card-image">
                             {categoryEmoji}
                         </div>
                     )}
 
-                    {/* Gradient overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    {/* Cinematic gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/30" />
 
-                    {/* Price badge */}
-                    <span className="absolute top-2 right-2 px-2.5 py-1 rounded-xl text-xs sm:text-sm font-bold text-gold-400 bg-zayko-900/80 backdrop-blur-sm border border-gold-400/20 shadow-lg shadow-black/20">
-                        ₹{price}
-                    </span>
+                    {/* Price badge — floating glass */}
+                    <div className="absolute top-2.5 right-2.5">
+                        <span className="price-premium text-sm sm:text-base px-2.5 py-1 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.08]">
+                            ₹{price}
+                        </span>
+                    </div>
 
                     {/* Sold out overlay */}
                     <AnimatePresence>
-                        {(!available || quantity <= 0) && (
+                        {isOutOfStock && (
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center"
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-[3px] flex items-center justify-center"
                             >
-                                <span className="bg-red-500/90 text-white px-4 py-1.5 rounded-xl font-bold text-xs rotate-[-3deg] shadow-lg">
-                                    SOLD OUT
-                                </span>
+                                <motion.span
+                                    initial={{ scale: 0.8, rotate: -5 }}
+                                    animate={{ scale: 1, rotate: -3 }}
+                                    className="bg-red-500/90 text-white px-5 py-2 rounded-2xl font-bold text-xs tracking-wider uppercase shadow-2xl shadow-red-500/30"
+                                >
+                                    Sold Out
+                                </motion.span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Add-to-cart success checkmark overlay */}
+                    <AnimatePresence>
+                        {showSuccess && !isOutOfStock && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-10"
+                            >
+                                <motion.div
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    exit={{ scale: 0 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                    className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white text-2xl shadow-xl shadow-emerald-500/40"
+                                >
+                                    ✓
+                                </motion.div>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
 
-                {/* Content */}
+                {/* ── Content ── */}
                 <div className="flex flex-col flex-1 p-3 sm:p-4 gap-2">
                     {/* Name */}
-                    <h3 className="font-display font-bold text-sm sm:text-[15px] text-white line-clamp-1 leading-tight">
+                    <h3 className="font-display font-bold text-sm sm:text-[15px] text-white line-clamp-1 leading-tight group-hover:text-gold-300 transition-colors duration-300">
                         {name}
                     </h3>
 
-                    {/* Description — hide on very small mobile for compact cards */}
+                    {/* Description */}
                     {description && (
                         <p className="hidden sm:block text-xs text-zayko-400 line-clamp-2 leading-relaxed">{description}</p>
                     )}
 
-                    {/* Badge */}
+                    {/* Badges */}
                     <div className="flex items-center gap-1.5 flex-wrap mt-auto">
-                        {available && quantity > 0 ? (
+                        {!isOutOfStock ? (
                             <>
                                 <span
                                     className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold border ${quantity <= 3
@@ -176,28 +218,54 @@ export default function MenuCard({ id, name, price, category, available, quantit
                         )}
                     </div>
 
-                    {/* Add Button */}
-                    <button
+                    {/* ── Premium Add Button ── */}
+                    <motion.button
                         onClick={(e) => {
                             e.stopPropagation();
                             handleAdd();
                         }}
-                        disabled={!available || quantity <= 0}
-                        className={`w-full flex items-center justify-center gap-1.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 ${morphAnim ? 'morph-add' : ''} ${available && quantity > 0
-                            ? "bg-gradient-to-r from-gold-400 to-gold-500 text-zayko-900 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] active:scale-[0.95]"
-                            : "bg-zayko-700 text-zayko-500 cursor-not-allowed"
+                        disabled={isOutOfStock}
+                        whileTap={{ scale: 0.94 }}
+                        className={`w-full flex items-center justify-center gap-1.5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${!isOutOfStock
+                                ? "btn-add-premium"
+                                : "bg-zayko-700/50 text-zayko-500 cursor-not-allowed"
                             }`}
                     >
-                        <span className={flyAnim ? "cart-fly" : ""}>
-                            {inCart > 0 ? (
-                                <>In Cart ({inCart}) +</>
+                        <AnimatePresence mode="wait">
+                            {flyAnim ? (
+                                <motion.span
+                                    key="fly"
+                                    initial={{ y: 0 }}
+                                    animate={{ y: -12, opacity: 0 }}
+                                    exit={{ y: 0, opacity: 1 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    🛒
+                                </motion.span>
+                            ) : inCart > 0 ? (
+                                <motion.span
+                                    key="in-cart"
+                                    initial={{ scale: 0.8 }}
+                                    animate={{ scale: 1 }}
+                                    className="flex items-center gap-1"
+                                >
+                                    <span className="bg-zayko-900/20 px-1.5 py-0.5 rounded-md text-[10px]">{inCart}</span>
+                                    <span>in cart · Add +</span>
+                                </motion.span>
                             ) : (
-                                <>Add 🛒</>
+                                <motion.span
+                                    key="add"
+                                    initial={{ scale: 0.8 }}
+                                    animate={{ scale: 1 }}
+                                    className="flex items-center gap-1.5"
+                                >
+                                    Add to Cart
+                                </motion.span>
                             )}
-                        </span>
-                    </button>
+                        </AnimatePresence>
+                    </motion.button>
                 </div>
-            </div>
+            </motion.div>
 
             <CustomizationModal
                 item={{ id, name, price, category, available, quantity, preparationTime, image, description, customizations } as MenuItem}

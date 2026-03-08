@@ -3,34 +3,15 @@ import React, { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
-} from "recharts";
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DAY_SHORT: Record<string, string> = {
     Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
     Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
 };
-const BAR_COLORS = ["#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#06b6d4", "#ef4444"];
 
-interface StockItem {
-    itemId: string;
-    itemName: string;
-    currentStock: number;
-    weeklyDemand: number;
-    maxDailyDemand: number;
-    suggestedMinStock: number;
-    shortageRisk: boolean;
-    dailyDemand: Record<string, number>;
-}
-
-interface PurchaseItem {
-    itemName: string;
-    currentStock: number;
-    requiredStock: number;
-    toBuy: number;
-    urgency: "high" | "medium";
+function getTodayDayName(): string {
+    return new Date().toLocaleDateString("en-US", { weekday: "long" });
 }
 
 interface DashboardData {
@@ -48,11 +29,6 @@ interface DashboardData {
     tomorrowForecast: Record<string, number>;
     demandByDay: Record<string, Record<string, number>>;
     weeklyTotals: Record<string, number>;
-    stockComparison: StockItem[];
-    purchasePlan: PurchaseItem[];
-    dayChartData: Array<{ day: string; total: number }>;
-    liveDemandSummary?: Array<{ itemId: string; itemName: string; totalDemand: number; activeUsers: number }>;
-    totalActiveDailyDemands?: number;
 }
 
 interface LiveDemandItem {
@@ -62,19 +38,29 @@ interface LiveDemandItem {
     activeUsers: number;
 }
 
+interface DayDemandItem {
+    itemName: string;
+    requiredQuantity: number;
+}
+
 export default function StockManagerDashboard() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [filterDay, setFilterDay] = useState("all");
-    const [filterItem, setFilterItem] = useState("");
-    const [shortageOnly, setShortageOnly] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
 
-    // ─── Live Demand (Real-time via onSnapshot) ────
     const [liveDemand, setLiveDemand] = useState<LiveDemandItem[]>([]);
     const [liveTotalStudents, setLiveTotalStudents] = useState(0);
     const [liveTotalNeeds, setLiveTotalNeeds] = useState(0);
     const [liveConnected, setLiveConnected] = useState(false);
+
+    // ─── Raw Data for Client-Side Aggregation (Real-time) ───
+    const [rawDailyDemands, setRawDailyDemands] = useState<any[]>([]);
+    const [rawDemandPlans, setRawDemandPlans] = useState<any[]>([]);
+
+    // ─── Day-wise Purchase Requirement ────
+    const [selectedPurchaseDay, setSelectedPurchaseDay] = useState(getTodayDayName());
+    const [dayDemandItems, setDayDemandItems] = useState<DayDemandItem[]>([]);
+    const [dayTotalQuantity, setDayTotalQuantity] = useState(0);
 
     const getHeaders = () => ({
         "Content-Type": "application/json",
@@ -100,76 +86,100 @@ export default function StockManagerDashboard() {
         setLoading(false);
     };
 
-    // ─── Real-time Firestore Listener ──────────────
+    // ─── Real-time Firestore Listeners ──────────────
     useEffect(() => {
-        // Listen to all active dailyDemands in real-time
-        const q = query(
-            collection(db, "dailyDemands"),
-            where("isActive", "==", true)
-        );
-
-        const unsub = onSnapshot(
-            q,
+        // 1. Listen to active dailyDemands (uses short day names like "Mon")
+        const unsubDaily = onSnapshot(
+            query(collection(db, "dailyDemands"), where("isActive", "==", true)),
             (snap) => {
-                // Client-side aggregation: GROUP BY itemId, SUM(quantity)
-                const itemMap: Record<string, {
-                    itemId: string; itemName: string; totalDemand: number; users: Set<string>;
-                }> = {};
-
-                const allUsers = new Set<string>();
-
-                snap.forEach((doc) => {
-                    const d = doc.data();
-                    const key = d.itemId;
-                    allUsers.add(d.userId);
-
-                    if (!itemMap[key]) {
-                        itemMap[key] = {
-                            itemId: d.itemId,
-                            itemName: d.itemName || "Unknown",
-                            totalDemand: 0,
-                            users: new Set(),
-                        };
-                    }
-                    itemMap[key].totalDemand += d.quantity || 0;
-                    itemMap[key].users.add(d.userId);
-                });
-
-                const items = Object.values(itemMap)
-                    .map((item) => ({
-                        itemId: item.itemId,
-                        itemName: item.itemName,
-                        totalDemand: item.totalDemand,
-                        activeUsers: item.users.size,
-                    }))
-                    .sort((a, b) => b.totalDemand - a.totalDemand);
-
-                setLiveDemand(items);
-                setLiveTotalStudents(allUsers.size);
-                setLiveTotalNeeds(snap.size);
+                setRawDailyDemands(snap.docs.map((doc) => doc.data()));
                 setLiveConnected(true);
             },
             (err) => {
-                console.error("[LiveDemand] onSnapshot error:", err);
+                console.error("[LiveDemand] dailyDemands error:", err);
                 setLiveConnected(false);
             }
         );
 
-        return () => unsub();
+        // 2. Listen to active userDemandPlans (uses full day names like "Monday")
+        const unsubPlans = onSnapshot(
+            query(collection(db, "userDemandPlans"), where("isActive", "==", true)),
+            (snap) => {
+                setRawDemandPlans(snap.docs.map((doc) => doc.data()));
+            },
+            (err) => {
+                console.error("[LiveDemand] userDemandPlans error:", err);
+            }
+        );
+
+        return () => {
+            unsubDaily();
+            unsubPlans();
+        };
     }, []);
+
+    // ─── Compute Aggregated Data ──────────────
+    useEffect(() => {
+        const itemMap: Record<string, { itemId: string; itemName: string; totalDemand: number; users: Set<string> }> = {};
+        const dayDemandMap: Record<string, number> = {};
+        const allUsers = new Set<string>();
+
+        const processDoc = (d: any, isDailyDemand: boolean) => {
+            const key = d.itemId || "unknown-id";
+            const itemName = d.itemName || "Unknown";
+            const qty = d.quantity || 0;
+            const userId = d.userId;
+            const days: string[] = d.days || [];
+
+            if (userId) allUsers.add(userId);
+
+            // 1. Global Live Demand Aggregation
+            if (!itemMap[key]) {
+                itemMap[key] = { itemId: key, itemName, totalDemand: 0, users: new Set() };
+            }
+            itemMap[key].totalDemand += qty;
+            if (userId) itemMap[key].users.add(userId);
+
+            // 2. Selected Day Purchase Aggregation
+            // Match the day format: dailyDemands uses "Mon", userDemandPlans uses "Monday"
+            const targetDay = isDailyDemand ? DAY_SHORT[selectedPurchaseDay] : selectedPurchaseDay;
+
+            if (days.includes(targetDay)) {
+                dayDemandMap[itemName] = (dayDemandMap[itemName] || 0) + qty;
+            }
+        };
+
+        // Merge both datasets
+        rawDailyDemands.forEach((d) => processDoc(d, true));
+        rawDemandPlans.forEach((d) => processDoc(d, false));
+
+        // Update Live Demand State
+        const liveItems = Object.values(itemMap)
+            .map((item) => ({
+                itemId: item.itemId,
+                itemName: item.itemName,
+                totalDemand: item.totalDemand,
+                activeUsers: item.users.size,
+            }))
+            .sort((a, b) => b.totalDemand - a.totalDemand);
+
+        setLiveDemand(liveItems);
+        setLiveTotalStudents(allUsers.size);
+        setLiveTotalNeeds(rawDailyDemands.length + rawDemandPlans.length);
+
+        // Update Day-wise Purchase State
+        const purchaseItems = Object.entries(dayDemandMap)
+            .filter(([, qty]) => qty > 0)
+            .map(([itemName, requiredQuantity]) => ({ itemName, requiredQuantity }))
+            .sort((a, b) => b.requiredQuantity - a.requiredQuantity);
+
+        setDayDemandItems(purchaseItems);
+        setDayTotalQuantity(purchaseItems.reduce((s, i) => s + i.requiredQuantity, 0));
+    }, [rawDailyDemands, rawDemandPlans, selectedPurchaseDay]);
 
     const handlePrintReport = () => {
         window.print();
     };
-
-    // Filter stock comparison
-    const filteredStock = (data?.stockComparison || []).filter((s) => {
-        if (filterItem && !s.itemName.toLowerCase().includes(filterItem.toLowerCase())) return false;
-        if (shortageOnly && !s.shortageRisk) return false;
-        return true;
-    });
-
-    const displayDays = filterDay === "all" ? ALL_DAYS : [filterDay];
 
     return (
         <div className="min-h-screen bg-zayko-900 pb-12" ref={reportRef}>
@@ -180,7 +190,7 @@ export default function StockManagerDashboard() {
                         <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">📊</div>
                         <div>
                             <h1 className="text-lg font-display font-bold text-white">Dashboard Overview</h1>
-                            <p className="text-xs text-emerald-400">Demand Forecast & Inventory Planning</p>
+                            <p className="text-xs text-emerald-400">Demand & Inventory Planning</p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -350,233 +360,104 @@ export default function StockManagerDashboard() {
                             </div>
                         </div>
 
-                        {/* ─── Weekly Demand Chart ─── */}
-                        <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6 mb-8 animate-slide-up">
-                            <h3 className="text-lg font-display font-bold text-white mb-4">📈 Weekly Demand Overview</h3>
-                            {data.dayChartData.some((d) => d.total > 0) ? (
-                                <ResponsiveContainer width="100%" height={300}>
-                                    <BarChart data={data.dayChartData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
-                                        <XAxis
-                                            dataKey="day"
-                                            tick={{ fill: "#94a3b8", fontSize: 12 }}
-                                            tickFormatter={(v: string) => DAY_SHORT[v] || v}
-                                        />
-                                        <YAxis tick={{ fill: "#94a3b8", fontSize: 12 }} />
-                                        <Tooltip
-                                            contentStyle={{ background: "#0f2035", border: "1px solid #1e3a5f", borderRadius: "12px", color: "#fff" }}
-                                            labelFormatter={(v) => `${v}`}
-                                            formatter={(value) => [`${value} units`, "Demand"]}
-                                        />
-                                        <Bar dataKey="total" radius={[6, 6, 0, 0]}>
-                                            {data.dayChartData.map((_, idx) => (
-                                                <Cell key={idx} fill={BAR_COLORS[idx % BAR_COLORS.length]} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            ) : (
-                                <div className="flex items-center justify-center h-[300px] text-zayko-500">No demand data yet</div>
-                            )}
-                        </div>
 
-                        {/* ─── Low Stock Alerts ─── */}
-                        {data.stockComparison.filter((s) => s.shortageRisk).length > 0 && (
-                            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 mb-8 animate-fade-in">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <span className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center text-sm">🚨</span>
-                                    <h3 className="text-base font-display font-bold text-red-400">Low Stock Alerts</h3>
-                                    <span className="ml-auto px-2 py-1 rounded-full bg-red-500/20 text-red-300 text-xs font-bold">
-                                        {data.stockComparison.filter((s) => s.shortageRisk).length} items
-                                    </span>
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                    {data.stockComparison
-                                        .filter((s) => s.shortageRisk)
-                                        .map((s) => (
-                                            <div key={s.itemId} className="bg-zayko-900/50 rounded-xl p-3 border border-red-500/20">
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <span className="text-sm font-semibold text-white">{s.itemName}</span>
-                                                    <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold low-stock-pulse">
-                                                        ⚠ SHORTAGE
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-xs text-zayko-400">
-                                                    <span>Stock: <span className="text-red-400 font-bold">{s.currentStock}</span></span>
-                                                    <span>Demand: <span className="text-gold-400 font-bold">{s.maxDailyDemand}</span>/day</span>
-                                                </div>
-                                                <div className="mt-2 h-1.5 bg-zayko-700 rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full transition-all"
-                                                        style={{ width: `${Math.min(100, (s.currentStock / s.maxDailyDemand) * 100)}%` }}
-                                                    ></div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                </div>
+                        {/* ─── Day-wise Purchase Requirement ─── */}
+                        <div className="animate-slide-up">
+                            {/* Day Selector */}
+                            <div className="flex items-center gap-3 mb-5">
+                                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm">🛒</div>
+                                <h3 className="text-base font-display font-bold text-white">Day-wise Purchase Requirement</h3>
                             </div>
-                        )}
 
-                        {/* ─── Filters ─── */}
-                        <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4 mb-6 animate-slide-up no-print">
-                            <div className="flex flex-wrap items-center gap-3">
-                                <span className="text-xs text-zayko-400 font-semibold">Filters:</span>
-
-                                <select
-                                    value={filterDay}
-                                    onChange={(e) => setFilterDay(e.target.value)}
-                                    className="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 appearance-none"
-                                >
-                                    <option value="all" className="bg-zayko-800">All Days</option>
-                                    {ALL_DAYS.map((d) => (
-                                        <option key={d} value={d} className="bg-zayko-800">{d}</option>
-                                    ))}
-                                </select>
-
-                                <input
-                                    type="text"
-                                    placeholder="Search item…"
-                                    value={filterItem}
-                                    onChange={(e) => setFilterItem(e.target.value)}
-                                    className="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-white text-sm placeholder:text-zayko-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-44"
-                                />
-
-                                <button
-                                    onClick={() => setShortageOnly(!shortageOnly)}
-                                    className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${shortageOnly ? "bg-red-500 text-white" : "bg-white/5 text-zayko-400 border border-white/10"}`}
-                                >
-                                    ⚠️ Shortage Risk
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* ─── Weekly Summary Table ─── */}
-                        <div className="space-y-4 mb-8">
-                            <h3 className="text-base font-display font-bold text-white flex items-center gap-2">
-                                <span className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-sm">📋</span>
-                                Weekly Demand Breakdown
-                            </h3>
-                            {displayDays.map((day) => {
-                                const items = data.demandByDay[day] || {};
-                                let entries = Object.entries(items).sort((a, b) => b[1] - a[1]);
-
-                                if (filterItem) {
-                                    entries = entries.filter(([name]) =>
-                                        name.toLowerCase().includes(filterItem.toLowerCase())
-                                    );
-                                }
-
-                                return (
-                                    <div key={day} className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4 animate-slide-up">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h4 className="text-sm font-bold text-white">{day}</h4>
-                                            <span className="text-xs text-zayko-500">
-                                                {entries.reduce((s, [, v]) => s + v, 0)} total units
-                                            </span>
-                                        </div>
-                                        {entries.length > 0 ? (
-                                            <div className="space-y-1.5">
-                                                {entries.map(([name, qty]) => (
-                                                    <div key={name} className="flex items-center justify-between py-1.5 px-3 bg-white/5 rounded-xl">
-                                                        <span className="text-sm text-zayko-200">{name}</span>
-                                                        <span className="text-sm font-bold text-gold-400">{qty} units</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs text-zayko-500 italic">No demand</p>
+                            <div className="flex flex-wrap gap-2 mb-6">
+                                {ALL_DAYS.map((day) => (
+                                    <button
+                                        key={day}
+                                        onClick={() => setSelectedPurchaseDay(day)}
+                                        className={`px-5 py-3 rounded-2xl text-sm font-bold transition-all duration-200 ${selectedPurchaseDay === day
+                                            ? "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-500/25 scale-105"
+                                            : "bg-zayko-800/50 text-zayko-400 border border-zayko-700 hover:text-white hover:bg-white/5 hover:border-zayko-600"
+                                            }`}
+                                    >
+                                        {DAY_SHORT[day]}
+                                        {selectedPurchaseDay === day && (
+                                            <span className="ml-1.5 text-emerald-200/70 text-xs">●</span>
                                         )}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Purchase Summary Card */}
+                            <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/20 rounded-2xl p-5 mb-6">
+                                <h4 className="text-sm font-display font-bold text-white mb-1">
+                                    {selectedPurchaseDay} Purchase Summary
+                                </h4>
+                                <p className="text-[10px] text-blue-400 uppercase tracking-wider font-bold mb-4">Based on real user demand</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white/5 rounded-xl p-4 text-center">
+                                        <p className="text-3xl font-display font-bold text-emerald-400">{dayDemandItems.length}</p>
+                                        <p className="text-[10px] text-zayko-400 uppercase tracking-wider font-bold mt-1">Unique Items</p>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                    <div className="bg-white/5 rounded-xl p-4 text-center">
+                                        <p className="text-3xl font-display font-bold text-blue-400">{dayTotalQuantity}</p>
+                                        <p className="text-[10px] text-zayko-400 uppercase tracking-wider font-bold mt-1">Total Quantity</p>
+                                    </div>
+                                </div>
+                            </div>
 
-                        {/* ─── Stock Recommendations Table ─── */}
-                        <div className="animate-slide-up mb-8">
-                            <h3 className="text-base font-display font-bold text-white mb-4 flex items-center gap-2">
-                                <span className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm">📊</span>
-                                Stock Recommendations
-                            </h3>
-
-                            {filteredStock.length === 0 ? (
-                                <div className="bg-zayko-800/30 border border-zayko-700 rounded-2xl p-8 text-center">
-                                    <p className="text-zayko-400">No items match your filters</p>
+                            {/* Purchase Items Table */}
+                            {dayDemandItems.length === 0 ? (
+                                <div className="bg-zayko-800/30 border border-zayko-700 rounded-2xl p-12 text-center">
+                                    <div className="text-4xl mb-3">📭</div>
+                                    <p className="text-zayko-400 font-medium">No items required for {selectedPurchaseDay}</p>
+                                    <p className="text-xs text-zayko-600 mt-1">Items will appear here when users add demand for this day</p>
                                 </div>
                             ) : (
-                                <div className="overflow-x-auto">
+                                <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl overflow-hidden">
                                     <table className="w-full text-sm text-left">
                                         <thead>
-                                            <tr className="border-b border-zayko-700">
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold">Item</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">Current Stock</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">Max Daily Demand</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">Weekly Demand</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">Suggested Min</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">Risk</th>
+                                            <tr className="border-b border-zayko-700 bg-zayko-800/50">
+                                                <th className="px-6 py-4 text-zayko-400 font-semibold text-xs uppercase tracking-wider">#</th>
+                                                <th className="px-6 py-4 text-zayko-400 font-semibold text-xs uppercase tracking-wider">Item</th>
+                                                <th className="px-6 py-4 text-zayko-400 font-semibold text-xs uppercase tracking-wider text-right">
+                                                    Quantity to Purchase <span className="text-zayko-600">(for {DAY_SHORT[selectedPurchaseDay]})</span>
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {filteredStock.map((s) => (
-                                                <tr key={s.itemId} className="border-b border-zayko-700/50 hover:bg-white/5 transition-colors">
-                                                    <td className="px-4 py-3 text-white font-medium">{s.itemName}</td>
-                                                    <td className="px-4 py-3 text-center text-zayko-200">{s.currentStock}</td>
-                                                    <td className="px-4 py-3 text-center text-gold-400 font-semibold">{s.maxDailyDemand}</td>
-                                                    <td className="px-4 py-3 text-center text-blue-400">{s.weeklyDemand}</td>
-                                                    <td className="px-4 py-3 text-center text-emerald-400 font-semibold">{s.suggestedMinStock}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        {s.shortageRisk ? (
-                                                            <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold">⚠ Shortage</span>
-                                                        ) : (
-                                                            <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold">✓ OK</span>
-                                                        )}
+                                            {dayDemandItems.map((item, idx) => (
+                                                <tr
+                                                    key={item.itemName}
+                                                    className="border-b border-zayko-700/50 hover:bg-white/5 transition-colors"
+                                                >
+                                                    <td className="px-6 py-4 text-zayko-600 font-medium">{idx + 1}</td>
+                                                    <td className="px-6 py-4 text-white font-semibold">{item.itemName}</td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <span className="text-lg font-display font-bold text-emerald-400">
+                                                            {item.requiredQuantity}
+                                                        </span>
+                                                        <span className="text-xs text-zayko-500 ml-1.5">units</span>
                                                     </td>
                                                 </tr>
                                             ))}
                                         </tbody>
+                                        <tfoot>
+                                            <tr className="bg-zayko-800/80">
+                                                <td className="px-6 py-4" colSpan={2}>
+                                                    <span className="text-sm font-bold text-white">Total</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span className="text-lg font-display font-bold text-white">
+                                                        {dayTotalQuantity}
+                                                    </span>
+                                                    <span className="text-xs text-zayko-500 ml-1.5">units</span>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
                                     </table>
                                 </div>
                             )}
                         </div>
-
-                        {/* ─── Purchase Planning ─── */}
-                        {data.purchasePlan.length > 0 && (
-                            <div className="animate-slide-up">
-                                <h3 className="text-base font-display font-bold text-white mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 bg-gold-500/20 rounded-lg flex items-center justify-center text-sm">🛒</span>
-                                    Purchase Planning
-                                </h3>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left">
-                                        <thead>
-                                            <tr className="border-b border-zayko-700">
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold">Item</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">Current Stock</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">Required Stock</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">To Purchase</th>
-                                                <th className="px-4 py-3 text-zayko-400 font-semibold text-center">Urgency</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.purchasePlan.map((p) => (
-                                                <tr key={p.itemName} className="border-b border-zayko-700/50 hover:bg-white/5 transition-colors">
-                                                    <td className="px-4 py-3 text-white font-medium">{p.itemName}</td>
-                                                    <td className="px-4 py-3 text-center text-zayko-200">{p.currentStock}</td>
-                                                    <td className="px-4 py-3 text-center text-blue-400">{p.requiredStock}</td>
-                                                    <td className="px-4 py-3 text-center text-gold-400 font-bold">{p.toBuy}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        {p.urgency === "high" ? (
-                                                            <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold">🔴 High</span>
-                                                        ) : (
-                                                            <span className="px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-bold">🟡 Medium</span>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
                     </>
                 )}
             </div>

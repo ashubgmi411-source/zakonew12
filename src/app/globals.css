@@ -1193,3 +1193,377 @@ body {
 .voice-speaker-ring {
   animation: voiceSpeakerRing 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+/* ══════════════════════════════════════════════════
+   PREMIUM APPLE-LEVEL UI SYSTEM
+   ══════════════════════════════════════════════════ */
+
+/* ── Floating Blob Background ── */
+@keyframes blobFloat1 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  25% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  50% {
+    transform: translate(-20px, -30px) scale(0.95);
+  }
+
+  75% {
+    transform: translate(40px, -10px) scale(1.05);
+  }
+}
+
+@keyframes blobFloat2 {
+
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(-40px, 30px) scale(1.15);
+  }
+
+  66% {
+    transform: translate(20px, -40px) scale(0.9);
+  }
+}
+
+.premium-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.premium-blob-1 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent 70%);
+  animation: blobFloat1 18s ease-in-out infinite;
+}
+
+.premium-blob-2 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%);
+  animation: blobFloat2 22s ease-in-out infinite;
+}
+
+.premium-blob-3 {
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.12), transparent 70%);
+  animation: blobFloat1 25s ease-in-out infinite reverse;
+}
+
+/* ── Premium Glassmorphism Card ── */
+.premium-glass-card {
+  background: rgba(10, 22, 40, 0.45);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04);
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, box-shadow;
+}
+
+.premium-glass-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(251, 191, 36, 0.2);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(251, 191, 36, 0.08),
+    0 0 30px rgba(251, 191, 36, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ── Premium Food Card ── */
+.food-card-premium {
+  background: rgba(10, 22, 40, 0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  transition: all 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, box-shadow;
+}
+
+.food-card-premium:hover {
+  transform: translateY(-8px);
+  border-color: rgba(251, 191, 36, 0.2);
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(251, 191, 36, 0.1),
+    0 0 40px rgba(251, 191, 36, 0.05);
+}
+
+.food-card-premium .food-card-image {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.food-card-premium:hover .food-card-image {
+  transform: scale(1.12);
+}
+
+/* ── Premium Add-to-Cart Button ── */
+.btn-add-premium {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #0a1628;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.btn-add-premium:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.35);
+}
+
+.btn-add-premium:active {
+  transform: scale(0.96);
+}
+
+/* Ripple effect */
+.btn-add-premium::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(255, 255, 255, 0.3) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.btn-add-premium:active::after {
+  opacity: 1;
+}
+
+/* ── Premium Floating Navbar ── */
+.premium-navbar {
+  background: rgba(5, 11, 20, 0.6);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Premium Bottom Nav ── */
+.premium-bottom-nav {
+  background: rgba(5, 11, 20, 0.7);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 -8px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-radius: 1.5rem;
+}
+
+/* ── Animated Underline for nav links ── */
+.nav-link-premium {
+  position: relative;
+}
+
+.nav-link-premium::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  border-radius: 1px;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.nav-link-premium:hover::after,
+.nav-link-premium.active::after {
+  width: 80%;
+}
+
+/* ── Carousel Glow Effect ── */
+.carousel-glow-item {
+  position: relative;
+}
+
+.carousel-glow-item::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), transparent 50%, rgba(99, 102, 241, 0.1));
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: -1;
+}
+
+.carousel-glow-item:hover::before {
+  opacity: 1;
+}
+
+/* ── Loading Skeleton ── */
+@keyframes skeletonShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-premium {
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.04) 25%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.8s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+
+/* ── Success Checkmark Animation ── */
+@keyframes checkmarkDraw {
+  0% {
+    stroke-dashoffset: 48;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes checkmarkCircle {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── Hero Gradient Animation ── */
+@keyframes heroGradient {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hero-gradient {
+  background: linear-gradient(-45deg,
+      #050b14, #0a1628, #0f2035,
+      rgba(251, 191, 36, 0.08), #0a1628, #050b14);
+  background-size: 300% 300%;
+  animation: heroGradient 12s ease infinite;
+}
+
+/* ── Trending Auto-Scroll ── */
+@keyframes autoScroll {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.auto-scroll-track {
+  animation: autoScroll 30s linear infinite;
+}
+
+.auto-scroll-track:hover {
+  animation-play-state: paused;
+}
+
+/* ── Price Shimmer ── */
+@keyframes priceShimmer {
+  0% {
+    background-position: -100% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.price-premium {
+  background: linear-gradient(90deg, #fde68a, #fbbf24, #f59e0b, #fbbf24, #fde68a);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: priceShimmer 3s ease-in-out infinite;
+  font-weight: 800;
+}
+
+/* ── Entrance Animations ── */
+@keyframes premiumFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.premium-fade-up {
+  animation: premiumFadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Category Pill Premium ── */
+.category-pill-active {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #0a1628;
+  box-shadow: 0 4px 16px rgba(251, 191, 36, 0.35);
+}
+
+.category-pill-inactive {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #7b8fa3;
+  transition: all 0.25s ease;
+}
+
+.category-pill-inactive:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.12);
+}
