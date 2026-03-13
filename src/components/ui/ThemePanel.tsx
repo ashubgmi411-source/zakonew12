@@ -144,7 +144,7 @@ export default function ThemePanel() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[48] bg-black/40 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
             aria-hidden="true"
           />
 
@@ -155,7 +155,7 @@ export default function ThemePanel() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", stiffness: 350, damping: 32 }}
-            className="fixed top-0 right-0 bottom-0 z-[49] w-[340px] max-w-[90vw] overflow-y-auto"
+            className="fixed top-0 right-0 bottom-0 z-[61] w-[340px] max-w-[90vw] overflow-y-auto"
             style={{
               background: "var(--theme-bg-secondary)",
               borderLeft: "1px solid var(--theme-border)",
