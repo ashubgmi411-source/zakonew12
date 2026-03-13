@@ -2,97 +2,79 @@
  * Next.js Instrumentation — Runs once when the server starts.
  *
  * Sets up node-cron jobs for background tasks on Railway deployment:
- * 1. Scheduled order execution — every minute
+ * 1. Scheduled order execution — every minute (DIRECT call, no HTTP)
  * 2. Recurring auto-order execution — daily at midnight
+ * 3. AI Cooking Plan generation — daily at 2 AM
+ *
+ * NOTE: Cron #1 calls the executor directly to avoid ECONNREFUSED on Railway.
+ * Crons #2 and #3 still use HTTP but with a localhost fallback.
  */
 
 export async function register() {
-    // Only run cron jobs on the server (Node.js runtime), not during build
     if (process.env.NEXT_RUNTIME === "nodejs") {
         const cron = await import("node-cron");
 
-        // Use localhost for internal cron calls to avoid DNS/SSL and self-reachability issues on Railway
-        const PORT = process.env.PORT || 3000;
-        const BASE_URL = `http://localhost:${PORT}`;
-
-        const CRON_SECRET = process.env.CRON_SECRET || "";
-        console.log(`[Cron] Internal BASE_URL: ${BASE_URL} (for internal API calls)`);
-
-        // ── Scheduled Orders: Execute every minute ──────────────
+        // ── Scheduled Orders: Execute every minute (DIRECT — no HTTP) ──
         cron.default.schedule("* * * * *", async () => {
-            const url = `${BASE_URL}/api/scheduled-order/execute`;
             try {
-                const res = await fetch(url, {
-                    headers: CRON_SECRET
-                        ? { "x-cron-secret": CRON_SECRET }
-                        : {},
-                });
-                
-                if (!res.ok) {
-                    const text = await res.text();
-                    console.error(`[Cron] Scheduled order execution failed (HTTP ${res.status}):`, text);
-                    return;
-                }
-
-                const data = await res.json();
-                if (data.processed > 0) {
+                const { executeScheduledOrders } = await import(
+                    "@/services/scheduledOrderExecutor"
+                );
+                const result = await executeScheduledOrders();
+                if (result.processed > 0) {
                     console.log(
-                        `[Cron] Scheduled orders: ${data.processed} processed, results:`,
-                        data.results
+                        `[Cron] Scheduled orders: ${result.processed} processed, results:`,
+                        result.results
                     );
                 }
             } catch (err) {
-                console.error(`[Cron] Scheduled order execution failed for ${url}:`, err);
+                console.error("[Cron] Scheduled order execution failed:", err);
             }
         });
 
+        // For HTTP-based crons, use internal localhost
+        const PORT = process.env.PORT || 3000;
+        const BASE_URL = `http://localhost:${PORT}`;
+        const CRON_SECRET = process.env.CRON_SECRET || "";
+
         // ── Auto Orders: Execute daily at midnight ──────────────
         cron.default.schedule("0 0 * * *", async () => {
-            const url = `${BASE_URL}/api/auto-orders/execute`;
             try {
-                const res = await fetch(url, {
-                    headers: CRON_SECRET
-                        ? { "x-cron-secret": CRON_SECRET }
-                        : {},
+                const res = await fetch(`${BASE_URL}/api/auto-orders/execute`, {
+                    headers: CRON_SECRET ? { "x-cron-secret": CRON_SECRET } : {},
                 });
-
-                if (!res.ok) {
-                    const text = await res.text();
-                    console.error(`[Cron] Auto order execution failed (HTTP ${res.status}):`, text);
-                    return;
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log("[Cron] Auto orders:", data);
+                } else {
+                    console.error(`[Cron] Auto orders failed (HTTP ${res.status})`);
                 }
-
-                const data = await res.json();
-                console.log("[Cron] Auto orders:", data);
             } catch (err) {
-                console.error(`[Cron] Auto order execution failed for ${url}:`, err);
+                console.error("[Cron] Auto order execution failed:", err);
             }
         });
 
         // ── AI Cooking Plan: Execute daily at 2:00 AM ───────────
         cron.default.schedule("0 2 * * *", async () => {
-            const url = `${BASE_URL}/api/ai/cooking-plan`;
             try {
-                const res = await fetch(url, {
+                const res = await fetch(`${BASE_URL}/api/ai/cooking-plan`, {
                     method: "POST",
-                    headers: CRON_SECRET
-                        ? { "x-cron-secret": CRON_SECRET, "Content-Type": "application/json" }
-                        : { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(CRON_SECRET ? { "x-cron-secret": CRON_SECRET } : {}),
+                    },
                 });
-
-                if (!res.ok) {
-                    const text = await res.text();
-                    console.error(`[Cron] AI Cooking Plan execution failed (HTTP ${res.status}):`, text);
-                    return;
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log("[Cron] AI Cooking Plan:", data.success ? "✅ Success" : "❌ Failed");
+                } else {
+                    console.error(`[Cron] AI Cooking Plan failed (HTTP ${res.status})`);
                 }
-
-                const data = await res.json();
-                console.log("[Cron] AI Cooking Plan Generated:", data.success ? "Success" : "Failed");
             } catch (err) {
-                console.error(`[Cron] AI Cooking Plan execution failed for ${url}:`, err);
+                console.error("[Cron] AI Cooking Plan execution failed:", err);
             }
         });
 
-        console.log("[Cron] ✅ Scheduled order cron (every min) + Auto order cron (daily) + AI Plan cron (2AM) started");
+        console.log("[Cron] ✅ Scheduled order cron (every min, direct) + Auto order cron (daily) + AI Plan cron (2AM) started");
     }
 }
