@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
+import { getRespectfulGreeting } from "@/services/llmService";
 
 interface ChatMessage {
     role: "assistant" | "user" | "system";
@@ -71,14 +72,13 @@ export default function JarvisChat() {
         }
     };
 
-    // Initial Greeting
     useEffect(() => {
         if (open && messages.length === 0) {
-            const firstName = profile?.name?.split(" ")[0] || "Buddy";
+            const greeting = getRespectfulGreeting({ name: profile?.name, gender: profile?.gender });
             setMessages([
                 {
                     role: "assistant",
-                    content: `Namaste ${firstName}! 🙏 Main hoon Jarvis — Zayko AI Ordering Engine.\n\nSeedha order bolo, jaise:\n• "6 milk"\n• "2 samosa aur 1 chai"\n• "3 coffee order karo"\n\nMain turant process karunga! ⚡`,
+                    content: `${greeting}! 🙏 Main hoon Jarvis — Zayko AI Ordering Engine.\n\nSeedha order bolo, jaise:\n• "6 milk"\n• "2 samosa aur 1 chai"\n• "3 coffee order karo"\n\nMain turant process karunga! ⚡`,
                     timestamp: Date.now(),
                 },
             ]);

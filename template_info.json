@@ -1,0 +1,74 @@
+[
+  {
+    "index": 0,
+    "name": "Front Cover",
+    "placeholders": [
+      {
+        "id": 1,
+        "name": "Google Shape;16;p6",
+        "type": "BODY (2)"
+      },
+      {
+        "id": 0,
+        "name": "Google Shape;17;p6",
+        "type": "TITLE (1)"
+      }
+    ]
+  },
+  {
+    "index": 1,
+    "name": "3_Table of Contents2",
+    "placeholders": []
+  },
+  {
+    "index": 2,
+    "name": "BLANK",
+    "placeholders": []
+  },
+  {
+    "index": 3,
+    "name": "Table of Contents",
+    "placeholders": []
+  },
+  {
+    "index": 4,
+    "name": "2_Table of Contents2",
+    "placeholders": [
+      {
+        "id": 0,
+        "name": "Google Shape;54;p11",
+        "type": "TITLE (1)"
+      },
+      {
+        "id": 1,
+        "name": "Google Shape;55;p11",
+        "type": "BODY (2)"
+      }
+    ]
+  },
+  {
+    "index": 5,
+    "name": "3_Table of Contents",
+    "placeholders": []
+  },
+  {
+    "index": 6,
+    "name": "1_Table of Contents",
+    "placeholders": []
+  },
+  {
+    "index": 7,
+    "name": "Body",
+    "placeholders": []
+  },
+  {
+    "index": 8,
+    "name": "1_Body",
+    "placeholders": []
+  },
+  {
+    "index": 9,
+    "name": "Break Time Slide",
+    "placeholders": []
+  }
+]

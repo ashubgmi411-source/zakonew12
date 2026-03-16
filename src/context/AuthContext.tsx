@@ -26,6 +26,7 @@ interface UserProfile {
     pinHash?: string; // Add this
     walletBalance: number;
     uniqueCode: string;
+    gender?: "male" | "female" | string;
     role: "user" | "admin" | "stock_manager";
     createdAt: string;
 }

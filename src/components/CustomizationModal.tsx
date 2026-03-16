@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useMemo, useRef } from "react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { MenuItem, MenuItemOption, SelectedOption } from "@/types";
 
 interface CustomizationModalProps {
@@ -12,6 +12,7 @@ interface CustomizationModalProps {
 
 export default function CustomizationModal({ item, isOpen, onClose, onAdd }: CustomizationModalProps) {
     const [selections, setSelections] = useState<Record<string, string[]>>({});
+    const sheetRef = useRef<HTMLDivElement>(null);
 
     // Initialize selections with required defaults if single-choice
     useMemo(() => {
@@ -85,38 +86,70 @@ export default function CustomizationModal({ item, isOpen, onClose, onAdd }: Cus
         onClose();
     };
 
+    // Drag-to-dismiss handler
+    const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        // Close if dragged down >100px or with high velocity
+        if (info.offset.y > 100 || info.velocity.y > 500) {
+            onClose();
+        }
+    };
+
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div
+                    className="fixed inset-0 z-[9999] flex items-end justify-center"
+                    style={{ touchAction: "none" }}
+                >
+                    {/* Backdrop */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={onClose}
+                        transition={{ duration: 0.2 }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onClose();
+                        }}
                         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                     />
 
+                    {/* Bottom Sheet */}
                     <motion.div
+                        ref={sheetRef}
                         initial={{ y: "100%" }}
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
-                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="relative w-full max-w-lg bg-zayko-800 border-t sm:border border-zayko-700 rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[90vh]"
+                        transition={{ type: "spring", damping: 28, stiffness: 300 }}
+                        drag="y"
+                        dragConstraints={{ top: 0, bottom: 0 }}
+                        dragElastic={{ top: 0, bottom: 0.6 }}
+                        onDragEnd={handleDragEnd}
+                        className="relative w-full max-w-lg bg-zayko-800 border-t border-white/[0.08] rounded-t-3xl overflow-hidden flex flex-col max-h-[85vh]"
+                        style={{ touchAction: "none" }}
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Header */}
-                        <div className="p-4 border-b border-zayko-700 flex items-center justify-between bg-zayko-800/50 sticky top-0 z-10 backdrop-blur-md">
+                        {/* ── Drag Handle ── */}
+                        <div className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing">
+                            <div className="w-10 h-1 rounded-full bg-white/20" />
+                        </div>
+
+                        {/* ── Header ── */}
+                        <div className="px-5 pb-3 pt-1 border-b border-white/[0.06] flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-display font-bold text-white">{item.name}</h3>
-                                <p className="text-xs text-zayko-400">Customize your order</p>
+                                <p className="text-xs text-zayko-400 mt-0.5">Customize your order</p>
                             </div>
-                            <button onClick={onClose} className="p-2 text-zayko-400 hover:text-white transition-colors">
+                            <button
+                                onClick={onClose}
+                                className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center text-zayko-400 hover:text-white hover:bg-white/[0.1] transition-all active:scale-90"
+                            >
                                 ✕
                             </button>
                         </div>
 
-                        {/* Options List */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                        {/* ── Options List (scrollable) ── */}
+                        <div className="flex-1 overflow-y-auto overscroll-contain p-5 space-y-6" style={{ touchAction: "pan-y" }}>
                             {item.customizations?.map(cust => (
                                 <div key={cust.id} className="space-y-3">
                                     <div className="flex items-center justify-between">
@@ -133,10 +166,13 @@ export default function CustomizationModal({ item, isOpen, onClose, onAdd }: Cus
                                             return (
                                                 <button
                                                     key={opt.id}
-                                                    onClick={() => handleSelect(cust.id, opt.id, cust.type)}
-                                                    className={`flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all duration-200 ${isSelected
-                                                            ? "bg-gold-400/10 border-gold-400/50 text-gold-400 scale-[1.01]"
-                                                            : "bg-white/5 border-transparent text-zayko-300 hover:bg-white/10"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleSelect(cust.id, opt.id, cust.type);
+                                                    }}
+                                                    className={`flex items-center justify-between p-4 min-h-[48px] rounded-2xl border-2 transition-all duration-200 active:scale-[0.98] ${isSelected
+                                                            ? "bg-gold-400/10 border-gold-400/50 text-gold-400"
+                                                            : "bg-white/[0.04] border-transparent text-zayko-300 hover:bg-white/[0.08]"
                                                         }`}
                                                 >
                                                     <div className="flex items-center gap-3">
@@ -155,23 +191,30 @@ export default function CustomizationModal({ item, isOpen, onClose, onAdd }: Cus
                             ))}
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-4 border-t border-zayko-700 bg-zayko-800/50 backdrop-blur-md">
+                        {/* ── Footer ── */}
+                        <div className="p-5 border-t border-white/[0.06] bg-zayko-800/80 backdrop-blur-md">
                             <div className="flex items-center justify-between mb-4">
                                 <span className="text-sm text-zayko-400 font-medium">Subtotal</span>
                                 <span className="text-xl font-display font-bold text-white">₹{item.price + totalExtra}</span>
                             </div>
-                            <button
-                                onClick={handleConfirm}
+                            <motion.button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleConfirm();
+                                }}
                                 disabled={!isReady}
-                                className={`w-full py-4 rounded-2xl font-bold text-sm transition-all shadow-lg ${isReady
-                                        ? "bg-gradient-to-r from-gold-400 to-gold-500 text-zayko-900 hover:shadow-gold-400/20"
+                                whileTap={{ scale: 0.97 }}
+                                className={`w-full py-4 min-h-[52px] rounded-2xl font-bold text-sm transition-all shadow-lg ${isReady
+                                        ? "bg-gradient-to-r from-gold-400 to-gold-500 text-zayko-900 hover:shadow-gold-400/20 active:shadow-gold-400/30"
                                         : "bg-zayko-700 text-zayko-500 cursor-not-allowed"
                                     }`}
                             >
                                 {isReady ? "Add to Cart 🛒" : "Please select required options"}
-                            </button>
+                            </motion.button>
                         </div>
+
+                        {/* Safe area for iPhones */}
+                        <div className="h-[env(safe-area-inset-bottom)]" />
                     </motion.div>
                 </div>
             )}

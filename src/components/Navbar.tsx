@@ -21,6 +21,7 @@ export default function Navbar() {
         { href: "/cart", label: "Cart", icon: "🛒", badge: itemCount },
         { href: "/orders", label: "Orders", icon: "📋" },
         { href: "/wallet", label: "Wallet", icon: "💰" },
+        { href: "/profile", label: "Profile", icon: "👤" },
     ];
 
     return (
@@ -111,10 +112,15 @@ export default function Navbar() {
                         {/* Desktop profile */}
                         {user && profile && (
                             <div className="hidden md:flex items-center gap-3">
-                                <div className="text-right">
-                                    <p className="text-sm font-semibold text-white">{profile.name}</p>
-                                    <p className="text-[10px] text-zayko-400">{profile.rollNumber}</p>
-                                </div>
+                                <Link href="/profile" className="flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-white/[0.06] transition-all duration-200 group">
+                                    <div className="text-right">
+                                        <p className="text-sm font-semibold text-white group-hover:text-gold-400 transition-colors">{profile.name}</p>
+                                        <p className="text-[10px] text-zayko-400">{profile.rollNumber}</p>
+                                    </div>
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center text-zayko-900 font-bold text-sm">
+                                        {profile.name.charAt(0)}
+                                    </div>
+                                </Link>
                                 <motion.button
                                     onClick={signOut}
                                     whileHover={{ scale: 1.05 }}

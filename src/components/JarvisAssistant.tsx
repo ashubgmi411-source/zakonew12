@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
+import { getRespectfulGreeting } from "@/services/llmService";
 
 export default function JarvisAssistant() {
     const { user, profile, getIdToken } = useAuth();
@@ -38,8 +39,8 @@ export default function JarvisAssistant() {
         const hasGreeted = sessionStorage.getItem("jarvis_greeted");
         if (!hasGreeted) {
             greetAttempted.current = true;
-            const firstName = profile.name.split(" ")[0] || "Buddy";
-            const greetingText = `Hey ${firstName}, Zayko mein aapka swagat hai. Bataye main aapke liye kya order karu?`;
+            const greeting = getRespectfulGreeting({ name: profile.name, gender: profile.gender });
+            const greetingText = `${greeting}! Zayko mein aapka swagat hai. Bataye main aapke liye kya order karun?`;
 
             const playGreeting = () => {
                 sessionStorage.setItem("jarvis_greeted", "true");

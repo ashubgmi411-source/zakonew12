@@ -138,7 +138,7 @@ export default function MenuPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zayko-900 pb-28 md:pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-zayko-900 pb-28 md:pb-24 relative overflow-x-hidden overflow-y-auto">
 
       {/* ── Floating Blobs (Background) ── */}
       <div className="premium-blob premium-blob-1 top-[-100px] right-[-80px]" />
@@ -215,108 +215,7 @@ export default function MenuPage() {
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-zayko-900 to-transparent" />
       </motion.div>
 
-      {/* ══════════════════════════════════════
-          QUICK ACCESS CARDS
-         ══════════════════════════════════════ */}
-      <div className="px-4 sm:px-6 max-w-7xl mx-auto mt-2 mb-2 relative z-10">
-        <motion.div
-          className="grid grid-cols-4 gap-2.5 sm:gap-4"
-          initial="hidden"
-          animate="show"
-          variants={containerVariants}
-        >
-          {/* 1️⃣ Daily Needs */}
-          <motion.div variants={itemVariants}>
-            <Link href="/dashboard/daily-needs"
-              className="quick-card quick-card-daily flex flex-col items-center gap-1.5 py-3 sm:py-4 px-2 rounded-2xl border border-blue-500/20 bg-blue-500/10 backdrop-blur-md relative overflow-hidden group">
-              <span className="text-2xl sm:text-3xl drop-shadow-md relative z-10 group-hover:scale-125 transition-transform duration-300">📋</span>
-              <span className="text-[10px] sm:text-xs font-bold text-center tracking-tight text-blue-400 relative z-10">Daily Needs</span>
-              <div className="absolute inset-0 quick-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </Link>
-          </motion.div>
 
-          {/* 2️⃣ Suggestions */}
-          <motion.div variants={itemVariants}>
-            <Link href="/suggestions"
-              className="quick-card quick-card-suggestions flex flex-col items-center gap-1.5 py-3 sm:py-4 px-2 rounded-2xl border border-purple-500/20 bg-purple-500/10 backdrop-blur-md relative overflow-hidden group">
-              <span className="text-2xl sm:text-3xl drop-shadow-md relative z-10 group-hover:scale-110 group-hover:rotate-12 transition-all duration-300">🗳️</span>
-              <span className="text-[10px] sm:text-xs font-bold text-center tracking-tight text-purple-400 relative z-10">Suggestions</span>
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-purple-500/0 to-fuchsia-500/0 group-hover:from-purple-500/15 group-hover:via-purple-400/10 group-hover:to-fuchsia-500/15 transition-all duration-500" />
-              <div className="absolute inset-0 rounded-2xl quick-pulse-ring opacity-0 group-hover:opacity-100" />
-            </Link>
-          </motion.div>
-
-          {/* 3️⃣ Suggest */}
-          <motion.div variants={itemVariants}>
-            <Link href="/dashboard/suggest-item"
-              className="quick-card quick-card-suggest flex flex-col items-center gap-1.5 py-3 sm:py-4 px-2 rounded-2xl border border-amber-500/20 bg-amber-500/10 backdrop-blur-md relative overflow-hidden group">
-              <span className="text-2xl sm:text-3xl drop-shadow-md relative z-10 bulb-glow">💡</span>
-              <span className="text-[10px] sm:text-xs font-bold text-center tracking-tight text-amber-400 relative z-10">Suggest</span>
-              <div className="absolute top-1 sm:top-2 left-1/2 -translate-x-1/2 w-10 h-10 sm:w-14 sm:h-14 rounded-full bulb-glow-bg" />
-            </Link>
-          </motion.div>
-
-          {/* 4️⃣ Feedback */}
-          <motion.div variants={itemVariants}>
-            <Link href="/dashboard/feedback"
-              className="quick-card quick-card-feedback flex flex-col items-center gap-1.5 py-3 sm:py-4 px-2 rounded-2xl border border-gold-500/20 bg-gold-500/10 backdrop-blur-md relative overflow-hidden group quick-float">
-              <span className="text-2xl sm:text-3xl drop-shadow-md relative z-10 star-bounce">⭐</span>
-              <span className="text-[10px] sm:text-xs font-bold text-center tracking-tight text-gold-400 relative z-10">Feedback</span>
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gold-500/0 via-amber-500/0 to-orange-500/0 group-hover:from-gold-500/15 group-hover:via-amber-400/10 group-hover:to-orange-500/15 transition-all duration-700" />
-              <div className="absolute inset-0 rounded-2xl border border-transparent group-hover:border-gold-400/40 group-hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all duration-500" />
-            </Link>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* ══════════════════════════════════════
-          TRENDING NOW — Animated Carousel
-         ══════════════════════════════════════ */}
-      {availableItems.length > 0 && !search && category === "all" && (
-        <motion.section
-          className="mt-8 mb-4 relative z-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <div className="px-4 sm:px-6 max-w-7xl mx-auto flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-7 rounded-full bg-gradient-to-b from-gold-400 to-gold-500 shadow-[0_0_12px_rgba(251,191,36,0.5)]" />
-              <div>
-                <h2 className="text-lg sm:text-xl font-display font-bold text-white">Trending Now</h2>
-                <p className="text-[10px] sm:text-xs text-zayko-500">Most popular this week</p>
-              </div>
-            </div>
-            <motion.span
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-[10px] sm:text-xs font-bold text-gold-400 bg-gold-400/10 px-3 py-1 rounded-full border border-gold-400/20"
-            >
-              🔥 HOT
-            </motion.span>
-          </div>
-
-          {/* Carousel */}
-          <div ref={trendingRef} className="relative">
-            <div className="flex overflow-x-auto no-scrollbar gap-4 px-4 sm:px-6 pb-4 snap-x snap-mandatory">
-              {availableItems.slice(0, 6).map((item, idx) => (
-                <motion.div
-                  key={`trending-${item.id}`}
-                  className="min-w-[200px] sm:min-w-[240px] shrink-0 snap-start carousel-glow-item"
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <MenuCard {...item} />
-                </motion.div>
-              ))}
-            </div>
-            {/* Edge fade gradients */}
-            <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-zayko-900 to-transparent pointer-events-none z-10" />
-            <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-zayko-900 to-transparent pointer-events-none z-10" />
-          </div>
-        </motion.section>
-      )}
 
       {/* ══════════════════════════════════════
           SEARCH & FILTERS — Premium Sticky Bar
@@ -348,45 +247,155 @@ export default function MenuPage() {
             </AnimatePresence>
           </div>
 
-          {/* Category Pills — Premium */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-0.5">
+          {/* Category Cards — Premium Icon Grid */}
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+            {/* "All" card */}
             <motion.button
               onClick={() => setCategory("all")}
-              whileTap={{ scale: 0.93 }}
-              className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-300 shrink-0 ${category === "all" ? "category-pill-active" : "category-pill-inactive"
-                }`}
+              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.04, y: -2 }}
+              className={`flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-300 shrink-0 min-w-[72px] border ${
+                category === "all"
+                  ? "bg-gradient-to-br from-gold-400 to-gold-500 text-zayko-900 border-gold-400/40 shadow-[0_4px_20px_rgba(251,191,36,0.35)]"
+                  : "bg-white/[0.04] text-zayko-300 border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]"
+              }`}
             >
-              All
+              <span className="text-lg">🍽️</span>
+              <span>All</span>
             </motion.button>
-            {categories.map((cat) => (
-              <motion.button
-                key={cat.id}
-                onClick={() => setCategory(cat.slug)}
-                whileTap={{ scale: 0.93 }}
-                className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-300 shrink-0 ${category === cat.slug ? "category-pill-active" : "category-pill-inactive"
+            {categories.map((cat) => {
+              const icons: Record<string, string> = {
+                // Core meals
+                breakfast: "🍳", lunch: "🍽️", dinner: "🌙",
+                "indian-meals": "🍛", thali: "🍱", biryani: "🍚",
+                // Fast food / street
+                "fast-food": "🍟", "street-food": "🌮", snack: "🍿", snacks: "🧁",
+                // Specific cuisines
+                "chinese-food": "🥡", chinese: "🥡", "south-indian": "🥞",
+                "south-indians": "🥞", "north-indian": "🍛",
+                // Popular items
+                pizza: "🍕", burgers: "🍔", burger: "🍔",
+                sandwiches: "🥪", sandwich: "🥪",
+                "rolls-wraps": "🌯", rolls: "🌯", wraps: "🌯",
+                "noodles-pasta": "🍝", noodles: "🍜", pasta: "🍝",
+                momos: "🥟", chaat: "🫕",
+                // Parathas & bread
+                parathas: "🫓", paratha: "🫓", roti: "🫓", bread: "🍞",
+                // Healthy
+                "healthy-food": "🥗", healthy: "🥗", salad: "🥗",
+                // Drinks
+                beverages: "🥤", beverage: "🥤",
+                "tea-coffee": "☕", "tea-&-coffee": "☕", tea: "🍵", coffee: "☕",
+                "fresh-juices": "🧃", "fresh-juice": "🧃", juice: "🧃", juices: "🧃",
+                smoothie: "🥤", shake: "🥛", lassi: "🥛",
+                // Frozen / Ice cream
+                "ice-cream": "🍦", icecream: "🍦", "ice-creams": "🍦",
+                // Sweets / Desserts
+                desserts: "🍰", dessert: "🍰", sweets: "🍬", mithai: "🍬",
+                // Combos
+                combo: "🎁", combos: "🎁", "meal-combo": "🎁",
+                // Extras
+                extras: "🧂", sides: "🥙", dips: "🫙",
+                // Fallback
+                default: "🍴",
+              };
+              const icon = icons[cat.slug] || icons["default"];
+              const isActive = category === cat.slug;
+              return (
+                <motion.button
+                  key={cat.id}
+                  onClick={() => setCategory(cat.slug)}
+                  whileTap={{ scale: 0.92 }}
+                  whileHover={{ scale: 1.04, y: -2 }}
+                  className={`flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-300 shrink-0 min-w-[72px] border ${
+                    isActive
+                      ? "bg-gradient-to-br from-gold-400 to-gold-500 text-zayko-900 border-gold-400/40 shadow-[0_4px_20px_rgba(251,191,36,0.35)]"
+                      : "bg-white/[0.04] text-zayko-300 border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]"
                   }`}
-              >
-                {cat.name}
-              </motion.button>
-            ))}
+                >
+                  <span className="text-lg">{icon}</span>
+                  <span>{cat.name}</span>
+                </motion.button>
+              );
+            })}
           </div>
 
-          {/* Item count + toggle */}
+          {/* Item count + Colorful toggle */}
           <div className="flex items-center justify-between">
             <p className="text-[10px] sm:text-xs text-zayko-500 font-medium">{availableCount} items available</p>
-            <label className="relative inline-flex items-center cursor-pointer group">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={showUnavailable}
-                onChange={() => setShowUnavailable(!showUnavailable)}
-              />
-              <div className="w-9 h-5 bg-zayko-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gold-500 shadow-inner"></div>
-              <span className="ms-2 text-[10px] sm:text-xs font-medium text-zayko-400 group-hover:text-gold-400 transition-colors">Unavailable</span>
-            </label>
+            <button
+              onClick={() => setShowUnavailable(!showUnavailable)}
+              className="flex items-center gap-2 group"
+            >
+              <div className={`relative w-11 h-6 rounded-full transition-all duration-300 ${
+                showUnavailable
+                  ? "bg-gradient-to-r from-emerald-400 to-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.4)]"
+                  : "bg-gray-400/30 border border-gray-400/20"
+              }`}>
+                <motion.div
+                  className="absolute top-[3px] w-[18px] h-[18px] bg-white rounded-full shadow-md"
+                  animate={{ left: showUnavailable ? "calc(100% - 21px)" : "3px" }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              </div>
+              <span className={`text-[10px] sm:text-xs font-semibold transition-colors duration-200 ${
+                showUnavailable ? "text-emerald-400" : "text-zayko-400"
+              }`}>
+                {showUnavailable ? "Showing All" : "Unavailable"}
+              </span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* ══════════════════════════════════════
+          TRENDING NOW — Animated Carousel
+         ══════════════════════════════════════ */}
+      {availableItems.length > 0 && !search && category === "all" && (
+        <motion.section
+          className="mt-4 mb-4 relative z-10"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <div className="px-4 sm:px-6 max-w-7xl mx-auto flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-7 rounded-full bg-gradient-to-b from-gold-400 to-gold-500 shadow-[0_0_12px_rgba(251,191,36,0.5)]" />
+              <div>
+                <h2 className="text-lg sm:text-xl font-display font-bold text-white">Trending Now</h2>
+                <p className="text-[10px] sm:text-xs text-zayko-500">Most popular this week</p>
+              </div>
+            </div>
+            <motion.span
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-[10px] sm:text-xs font-bold text-gold-400 bg-gold-400/10 px-3 py-1 rounded-full border border-gold-400/20"
+            >
+              🔥 HOT
+            </motion.span>
+          </div>
+
+          {/* Carousel */}
+          <div ref={trendingRef} className="relative">
+            <div className="flex overflow-x-auto no-scrollbar gap-4 px-4 sm:px-6 pb-4 snap-x snap-mandatory">
+              {availableItems.slice(0, 6).map((item, idx) => (
+                <motion.div
+                  key={`trending-${item.id}`}
+                  className="min-w-[160px] max-w-[45vw] sm:min-w-[220px] sm:max-w-[240px] shrink-0 snap-start carousel-glow-item"
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <MenuCard {...item} />
+                </motion.div>
+              ))}
+            </div>
+            {/* Edge fade gradients */}
+            <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-zayko-900 to-transparent pointer-events-none z-10" />
+            <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-zayko-900 to-transparent pointer-events-none z-10" />
+          </div>
+        </motion.section>
+      )}
 
       {/* ══════════════════════════════════════
           MENU GRID — Premium Layout

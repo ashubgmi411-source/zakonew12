@@ -45,18 +45,20 @@ export default function ProfilePage() {
 
     const sections: ProfileSection[] = [
         {
-            title: "Shopping & Activity",
+            title: "Quick Tools",
             items: [
-                { label: "My Orders", icon: "📋", href: "/orders", detail: "Track & manage orders" },
-                { label: "My Daily Needs", icon: "🍱", href: "/dashboard/my-daily-needs", detail: "Recurring meal plans" },
-                { label: "Wallet & Payments", icon: "💰", href: "/wallet", detail: `Balance: ₹${profile.walletBalance}` },
+                { label: "Daily Needs", icon: "📋", href: "/dashboard/daily-needs", detail: "Browse daily essentials" },
+                { label: "Suggestions", icon: "🗳️", href: "/suggestions", detail: "Vote for new items" },
+                { label: "Suggest an Item", icon: "💡", href: "/dashboard/suggest-item", detail: "Request new menu items" },
+                { label: "Share Feedback", icon: "⭐", href: "/dashboard/feedback", detail: "Help us improve" },
             ]
         },
         {
-            title: "Support & Feedback",
+            title: "Shopping & Activity",
             items: [
-                { label: "Suggest an Item", icon: "💡", href: "/dashboard/suggest-item" },
-                { label: "Share Feedback", icon: "⭐", href: "/dashboard/feedback" },
+                { label: "My Orders", icon: "📦", href: "/orders", detail: "Track & manage orders" },
+                { label: "My Daily Needs", icon: "🍱", href: "/dashboard/my-daily-needs", detail: "Recurring meal plans" },
+                { label: "Wallet & Payments", icon: "💰", href: "/wallet", detail: `Balance: ₹${profile.walletBalance}` },
             ]
         },
         {

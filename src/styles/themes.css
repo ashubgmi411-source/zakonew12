@@ -617,3 +617,281 @@
 [data-theme="minimal"] .placeholder\:text-zayko-600::placeholder {
   color: var(--theme-text-muted) !important;
 }
+
+/* ── Placeholder text (zayko-500) ── */
+[data-theme="light"] .placeholder\:text-zayko-500::placeholder,
+[data-theme="minimal"] .placeholder\:text-zayko-500::placeholder {
+  color: var(--theme-text-muted) !important;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   FONT SWITCHING PER THEME
+   Each theme gets its own font pairing for personality.
+   ══════════════════════════════════════════════════════════ */
+
+[data-theme="dark"] {
+  --theme-font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+[data-theme="light"] {
+  --theme-font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+[data-theme="midnight"] {
+  --theme-font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+[data-theme="cyberpunk"] {
+  --theme-font-body: "Outfit", ui-monospace, monospace;
+  --theme-font-display: "Outfit", ui-monospace, monospace;
+}
+[data-theme="minimal"] {
+  --theme-font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+[data-theme="canteen"] {
+  --theme-font-body: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --theme-font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Apply fonts to the themed wrapper */
+[data-theme] {
+  font-family: var(--theme-font-body);
+}
+[data-theme] .font-display,
+[data-theme] h1,
+[data-theme] h2,
+[data-theme] h3 {
+  font-family: var(--theme-font-display);
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   COMPREHENSIVE LIGHT / MINIMAL OVERRIDES
+   Fixes ALL remaining dark-hardcoded classes
+   ══════════════════════════════════════════════════════════ */
+
+/* ── More background opacity variants ── */
+[data-theme="light"] .bg-white\/\[0\.03\],
+[data-theme="light"] .bg-white\/\[0\.04\],
+[data-theme="light"] .bg-white\/\[0\.05\],
+[data-theme="light"] .bg-white\/\[0\.06\],
+[data-theme="light"] .bg-white\/\[0\.08\],
+[data-theme="minimal"] .bg-white\/\[0\.03\],
+[data-theme="minimal"] .bg-white\/\[0\.04\],
+[data-theme="minimal"] .bg-white\/\[0\.05\],
+[data-theme="minimal"] .bg-white\/\[0\.06\],
+[data-theme="minimal"] .bg-white\/\[0\.08\] {
+  background-color: var(--theme-bg-input) !important;
+}
+
+[data-theme="light"] .bg-white\/\[0\.02\],
+[data-theme="minimal"] .bg-white\/\[0\.02\] {
+  background-color: var(--theme-bg-card) !important;
+}
+
+/* ── Card-level background opacity variants ── */
+[data-theme="light"] .bg-zayko-800\/40,
+[data-theme="light"] .bg-zayko-800\/50,
+[data-theme="light"] .bg-zayko-800\/80,
+[data-theme="minimal"] .bg-zayko-800\/40,
+[data-theme="minimal"] .bg-zayko-800\/50,
+[data-theme="minimal"] .bg-zayko-800\/80 {
+  background-color: var(--theme-bg-card) !important;
+}
+
+[data-theme="light"] .bg-zayko-900\/80,
+[data-theme="light"] .bg-zayko-900\/95,
+[data-theme="minimal"] .bg-zayko-900\/80,
+[data-theme="minimal"] .bg-zayko-900\/95 {
+  background-color: var(--theme-bg-elevated) !important;
+}
+
+/* ── Gradient overrides ── */
+[data-theme="light"] .bg-gradient-to-br.from-zayko-800,
+[data-theme="light"] .bg-gradient-to-br.to-zayko-900,
+[data-theme="light"] [class*="from-zayko-800"][class*="to-zayko-900"],
+[data-theme="minimal"] .bg-gradient-to-br.from-zayko-800,
+[data-theme="minimal"] .bg-gradient-to-br.to-zayko-900,
+[data-theme="minimal"] [class*="from-zayko-800"][class*="to-zayko-900"] {
+  background: var(--theme-bg-secondary) !important;
+}
+
+[data-theme="light"] .bg-gradient-to-t.from-zayko-900,
+[data-theme="minimal"] .bg-gradient-to-t.from-zayko-900 {
+  background: linear-gradient(to top, var(--theme-bg-primary), transparent) !important;
+}
+
+/* ── Text overrides for zayko-700 (section headers that are invisible on light) ── */
+[data-theme="light"] .text-zayko-700,
+[data-theme="minimal"] .text-zayko-700 {
+  color: var(--theme-text-muted) !important;
+}
+
+/* ── Missing border opacity variants ── */
+[data-theme="light"] .border-white\/\[0\.04\],
+[data-theme="light"] .border-white\/\[0\.05\],
+[data-theme="minimal"] .border-white\/\[0\.04\],
+[data-theme="minimal"] .border-white\/\[0\.05\] {
+  border-color: var(--theme-border) !important;
+}
+
+/* ── Gold/accent button overrides for light themes ── */
+[data-theme="light"] .bg-gold-400,
+[data-theme="minimal"] .bg-gold-400 {
+  background-color: var(--theme-accent-primary) !important;
+}
+
+[data-theme="light"] .bg-gold-400 .text-zayko-900,
+[data-theme="light"] .bg-gold-400.text-zayko-900,
+[data-theme="minimal"] .bg-gold-400 .text-zayko-900,
+[data-theme="minimal"] .bg-gold-400.text-zayko-900 {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .bg-gradient-to-r.from-gold-400,
+[data-theme="light"] [class*="from-gold-400"][class*="to-gold-500"],
+[data-theme="minimal"] .bg-gradient-to-r.from-gold-400,
+[data-theme="minimal"] [class*="from-gold-400"][class*="to-gold-500"] {
+  background: var(--theme-accent-gradient) !important;
+}
+
+[data-theme="light"] .bg-gradient-to-br.from-gold-400,
+[data-theme="light"] [class*="from-gold-400"][class*="to-gold-500"],
+[data-theme="minimal"] .bg-gradient-to-br.from-gold-400,
+[data-theme="minimal"] [class*="from-gold-400"][class*="to-gold-500"] {
+  background: var(--theme-accent-gradient) !important;
+  color: #ffffff !important;
+}
+
+/* ── Shadow overrides for gold glow ── */
+[data-theme="light"] .shadow-gold-400\/20,
+[data-theme="light"] .shadow-gold-400\/10,
+[data-theme="minimal"] .shadow-gold-400\/20,
+[data-theme="minimal"] .shadow-gold-400\/10 {
+  box-shadow: 0 4px 24px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* ── Backdrop blur panel overrides ── */
+[data-theme="light"] .backdrop-blur-2xl,
+[data-theme="light"] .backdrop-blur-xl,
+[data-theme="light"] .backdrop-blur-md,
+[data-theme="minimal"] .backdrop-blur-2xl,
+[data-theme="minimal"] .backdrop-blur-xl,
+[data-theme="minimal"] .backdrop-blur-md {
+  backdrop-filter: var(--theme-glass-blur) !important;
+  -webkit-backdrop-filter: var(--theme-glass-blur) !important;
+}
+
+/* ── Modal/sheet overrides ── */
+[data-theme="light"] .bg-black\/60,
+[data-theme="light"] .bg-black\/80,
+[data-theme="minimal"] .bg-black\/60,
+[data-theme="minimal"] .bg-black\/80 {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme="light"] .backdrop-blur-sm {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ── Red accent colors (for badges/errors) ── */
+[data-theme="light"] .text-red-400,
+[data-theme="minimal"] .text-red-400 {
+  color: #dc2626 !important;
+}
+
+[data-theme="light"] .bg-red-500\/10,
+[data-theme="minimal"] .bg-red-500\/10 {
+  background-color: rgba(220, 38, 38, 0.08) !important;
+}
+
+/* ── Green/emerald accent ── */
+[data-theme="light"] .text-emerald-400,
+[data-theme="minimal"] .text-emerald-400 {
+  color: #059669 !important;
+}
+
+/* ── Amber accent ── */
+[data-theme="light"] .text-amber-400,
+[data-theme="minimal"] .text-amber-400 {
+  color: #d97706 !important;
+}
+
+/* ── Blue accent ── */
+[data-theme="light"] .text-blue-400,
+[data-theme="minimal"] .text-blue-400 {
+  color: #2563eb !important;
+}
+
+[data-theme="light"] .bg-blue-500\/15,
+[data-theme="minimal"] .bg-blue-500\/15 {
+  background-color: rgba(37, 99, 235, 0.1) !important;
+}
+
+/* ── Purple accent ── */
+[data-theme="light"] .text-purple-400,
+[data-theme="minimal"] .text-purple-400 {
+  color: #7c3aed !important;
+}
+
+/* ── Orange accent ── */
+[data-theme="light"] .text-orange-400,
+[data-theme="minimal"] .text-orange-400 {
+  color: #ea580c !important;
+}
+
+/* ── Glass card backgrounds for light ── */
+[data-theme="light"] .glass-depth,
+[data-theme="minimal"] .glass-depth {
+  background: var(--theme-glass-bg) !important;
+  border-color: var(--theme-glass-border) !important;
+  box-shadow: var(--theme-shadow-card) !important;
+}
+
+/* ── Toggle switch bg ── */
+[data-theme="light"] .bg-zayko-700,
+[data-theme="minimal"] .bg-zayko-700 {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ── Focus ring overrides ── */
+[data-theme="light"] .focus\:ring-gold-400\/25:focus,
+[data-theme="light"] .focus\:ring-gold-400\/30:focus,
+[data-theme="minimal"] .focus\:ring-gold-400\/25:focus,
+[data-theme="minimal"] .focus\:ring-gold-400\/30:focus {
+  --tw-ring-color: rgba(37, 99, 235, 0.25) !important;
+}
+
+[data-theme="light"] .focus\:border-gold-400\/25:focus,
+[data-theme="light"] .focus\:border-gold-400\/30:focus,
+[data-theme="minimal"] .focus\:border-gold-400\/25:focus,
+[data-theme="minimal"] .focus\:border-gold-400\/30:focus {
+  border-color: rgba(37, 99, 235, 0.3) !important;
+}
+
+/* ── Hover state overrides ── */
+[data-theme="light"] .hover\:bg-white\/\[0\.05\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover,
+[data-theme="light"] .hover\:bg-white\/5:hover,
+[data-theme="minimal"] .hover\:bg-white\/\[0\.05\]:hover,
+[data-theme="minimal"] .hover\:bg-white\/\[0\.06\]:hover,
+[data-theme="minimal"] .hover\:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* ── Profile page gradient fix ── */
+[data-theme="light"] .bg-gradient-to-br,
+[data-theme="minimal"] .bg-gradient-to-br {
+  /* Intentionally empty — allows specific gradient selectors above to take precedence */
+  /* Do not remove: prevents Tailwind from hardcoding dark gradients */
+  background-image: none;
+}
+
+/* ── Premium blob overrides (hide on light as they look odd) ── */
+[data-theme="light"] .premium-blob,
+[data-theme="minimal"] .premium-blob {
+  display: none !important;
+}

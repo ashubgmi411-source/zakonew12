@@ -100,13 +100,18 @@ export default function MenuCard({ id, name, price, category, available, quantit
                 onMouseLeave={resetTilt}
                 onTouchMove={handleTilt}
                 onTouchEnd={resetTilt}
-                onClick={() => isOutOfStock && toast.error("Item currently unavailable")}
+                onClick={(e) => {
+                    // Only fire card-level click if NOT clicking a button or its children
+                    const target = e.target as HTMLElement;
+                    if (target.closest("button")) return;
+                    if (isOutOfStock) toast.error("Item currently unavailable");
+                }}
                 style={{
                     transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
                     transition: 'transform 0.2s ease-out',
                     willChange: 'transform',
                 }}
-                className={`flex flex-col food-card-premium cursor-pointer group ${isOutOfStock ? "opacity-50 grayscale-[0.3]" : ""}`}
+                className={`flex flex-col food-card-premium cursor-pointer group overflow-hidden ${isOutOfStock ? "opacity-50 grayscale-[0.3]" : ""}`}
                 whileHover={{ y: -6, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } }}
             >
                 {/* ── Image Section ── */}

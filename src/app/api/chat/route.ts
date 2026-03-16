@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { chatWithFallback, ChatMessage } from "@/lib/llm";
+import { getHonorific } from "@/services/llmService";
 import { getAuthenticatedUser } from "@/lib/user-auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { adminDb } from "@/lib/firebase-admin";
@@ -52,10 +53,12 @@ export async function POST(req: NextRequest) {
             console.error("Failed to fetch canteen config for chat:", e);
         }
 
-        // Build user context string
+        // Build user context string with gender-respectful addressing
         const userName = userProfile?.name || "";
+        const userGender = userProfile?.gender || "";
+        const honorific = getHonorific({ name: userName, gender: userGender });
         const userContextBlock = userName
-            ? `\n\nCURRENT USER INFO:\n- Name: ${userName}\n- Email: ${userProfile?.email || "N/A"}\n- Roll Number: ${userProfile?.rollNumber || "N/A"}`
+            ? `\n\nCURRENT USER INFO:\n- Name: ${userName}\n- Gender: ${userGender || "not specified"}\n- Honorific to use: ${honorific}\n- Email: ${userProfile?.email || "N/A"}\n- Roll Number: ${userProfile?.rollNumber || "N/A"}`
             : "";
 
         const canteenStatusBlock = canteenIsOpen
@@ -75,7 +78,19 @@ LANGUAGE RULES
 - If user switches to full English, reply in English.
 - Keep tone friendly, short, helpful.
 - Use light emojis (not too many).
-- Address user by their name (provided in user profile).
+- Address user RESPECTFULLY based on their gender:
+  - If gender = male: address as "Sir [Name]" (e.g., "Sir Ravi")
+  - If gender = female: address as "Ma'am [Name]" (e.g., "Ma'am Anjali")
+  - If gender is not available: use just [Name] (e.g., "Hello Ravi")
+- The honorific to use is provided in CURRENT USER INFO section.
+
+------------------------------------------
+STRICTLY BANNED WORDS
+------------------------------------------
+
+- NEVER use: bhai, bro, dude, yaar, boss, buddy, mate
+- ALWAYS maintain a professional and polite tone
+- Use Sir/Ma'am as specified above
 
 ------------------------------------------
 STRICT DOMAIN RULE
@@ -148,7 +163,7 @@ When user clicks "Place Order":
 
 Example style:
 
-"Ravi bhai 😄
+"Sir Ravi 😄
 Yeh raha aapka order summary 👇
 🍔 Burger ×2
 ☕ Chai ×1
