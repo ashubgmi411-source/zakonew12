@@ -198,10 +198,28 @@ export default function JarvisChat() {
                 lines.push("\nConfirm karna hai? 👇");
                 return lines.join("\n");
             }
-            case "ITEM_NOT_FOUND":
+            case "ITEM_NOT_FOUND": {
+                if (data.found_items && data.found_items.length > 0) {
+                    const lines = [`⚠️ ${data.message}\n`, "🛒 **Successfully Found:**"];
+                    for (const item of data.found_items) {
+                        lines.push(`• ${item.name} × ${item.quantity}`);
+                    }
+                    lines.push("\nConfirm baaki items? (Type 'yes' or use button)");
+                    return lines.join("\n");
+                }
                 return `⚠️ ${data.message}`;
-            case "STOCK_ERROR":
+            }
+            case "STOCK_ERROR": {
+                if (data.found_items && data.found_items.length > 0) {
+                    const lines = [`📦 ${data.message}\n`, "🛒 **Successfully Found:**"];
+                    for (const item of data.found_items) {
+                        lines.push(`• ${item.name} × ${item.quantity}`);
+                    }
+                    lines.push("\nConfirm baaki items? (Type 'yes' or use button)");
+                    return lines.join("\n");
+                }
                 return `📦 ${data.message}`;
+            }
             case "ORDER_PLACED":
                 return data.message || "✅ Order placed!";
             case "ORDER_FAILED":

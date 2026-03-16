@@ -49,11 +49,21 @@ export function parseNaturalLanguage(text: string): ParsedItem[] {
     // Smart auto-segmentation: if user says "2 milk 1 samosa" without "and/aur", 
     // we inject a comma between the item name ("milk") and the next number ("1").
     normalized = normalized.replace(/([a-zA-Z\u0900-\u097F]+)\s+(\d+)\b/g, "$1 , $2");
+    
+    // Do the same for transitions from number to word if no space (legacy case)
+    // normalized = normalized.replace(/(\d+)([a-zA-Z\u0900-\u097F]+)/g, "$1 $2");
 
     // Do the same for Hindi number words (ek, do, teen, एक, दो...)
     const hindiNumWords = Object.keys(HINDI_NUMBERS).join("|");
     const hindiRegex = new RegExp(`([a-zA-Z\\u0900-\\u097F]+)\\s+(${hindiNumWords})\\b`, "gi");
     normalized = normalized.replace(hindiRegex, "$1 , $2");
+
+    // Handle case where user says "milk 2 samosa 3" -> segments might lose "3"
+    // If a segment is JUST a number, we should probably append it to previous segment 
+    // but better split logic is to ensure word-number-word becomes word-number , word
+    normalized = normalized.replace(/(\d+)\s+([a-zA-Z\u0900-\u097F]+)/g, " , $1 $2");
+    // Clean double commas
+    normalized = normalized.replace(/,\s*,/g, ",");
 
     // Split by comma, "aur", "and", "&" or newline for multi-item support
     const segments = normalized

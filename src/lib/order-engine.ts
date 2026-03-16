@@ -136,6 +136,7 @@ export function processOrder(
 
     const foundItems: OrderedItem[] = [];
     const notFoundItems: string[] = [];
+    const stockErrors: any[] = [];
 
     for (const parsedItem of parsed) {
         const match = fuzzyMatchItem(parsedItem.rawName, menuItems);
@@ -153,13 +154,12 @@ export function processOrder(
 
         // Check stock
         if (match.quantity < parsedItem.quantity) {
-            return {
-                status: "STOCK_ERROR",
-                message: `"${match.name}" ke sirf ${match.quantity} available hain, aapne ${parsedItem.quantity} maange.`,
-                item_name: match.name,
+            stockErrors.push({
+                name: match.name,
                 requested: parsedItem.quantity,
-                available: match.quantity,
-            };
+                available: match.quantity
+            });
+            continue;
         }
 
         foundItems.push({
@@ -169,6 +169,21 @@ export function processOrder(
             total_price: match.price * parsedItem.quantity,
             item_id: match.id,
         });
+    }
+
+    // Handle Errors
+    if (stockErrors.length > 0) {
+        const err = stockErrors[0];
+        return {
+            status: "STOCK_ERROR",
+            message: stockErrors.length === 1 
+                ? `"${err.name}" ke sirf ${err.available} available hain.`
+                : `Multiple items stock mein nahi hain: ${stockErrors.map(e => e.name).join(", ")}`,
+            item_name: err.name,
+            requested: err.requested,
+            available: err.available,
+            found_items: foundItems.length > 0 ? foundItems : undefined
+        } as any;
     }
 
     // All items not found
