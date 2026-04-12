@@ -1,13 +1,21 @@
 "use client";
 import React, { useState, useRef, useCallback } from "react";
+import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { Flame, AlertTriangle, Check, Sparkles, X, ShoppingCart } from "lucide-react";
+import { GiCoffeeCup, GiPopcorn, GiMeal, GiCupcake, GiKnifeFork } from "react-icons/gi";
 
 import { MenuItem, SelectedOption } from "@/types";
 import CustomizationModal from "./CustomizationModal";
 
-export default function MenuCard({ id, name, price, category, available, quantity, preparationTime, image, description, customizations }: MenuItem & { id: string }) {
+interface MenuCardProps extends MenuItem {
+    id: string;
+    index?: number;
+}
+
+export default function MenuCard({ id, name, price, category, available, quantity, preparationTime, image, description, customizations, index = 0 }: MenuCardProps) {
     const { addItem, items } = useCart();
     const cartItem = items.find((i) => i.id === id);
     const inCart = cartItem ? cartItem.quantity : 0;
@@ -89,7 +97,7 @@ export default function MenuCard({ id, name, price, category, available, quantit
         });
     };
 
-    const categoryEmoji = category === "beverages" ? "☕" : category === "snacks" ? "🍿" : category === "meals" ? "🍱" : category === "desserts" ? "🍰" : "🍽️";
+    const categoryEmoji = category === "beverages" ? <GiCoffeeCup /> : category === "snacks" ? <GiPopcorn /> : category === "meals" ? <GiMeal /> : category === "desserts" ? <GiCupcake /> : <GiKnifeFork />;
     const isOutOfStock = !available || quantity <= 0;
 
     return (
@@ -111,17 +119,20 @@ export default function MenuCard({ id, name, price, category, available, quantit
                     transition: 'transform 0.2s ease-out',
                     willChange: 'transform',
                 }}
-                className={`flex flex-col food-card-premium cursor-pointer group overflow-hidden ${isOutOfStock ? "opacity-50 grayscale-[0.3]" : ""}`}
+                className={`flex flex-row md:flex-col theme-card cursor-pointer group overflow-hidden ${isOutOfStock ? "opacity-50 grayscale-[0.3]" : ""}`}
                 whileHover={{ y: -6, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } }}
             >
                 {/* ── Image Section ── */}
-                <div className="relative aspect-[4/3] bg-gradient-to-br from-zayko-800 to-zayko-700 overflow-hidden">
+                <div className="relative w-28 h-auto shrink-0 md:w-full md:h-48 md:aspect-[4/3] overflow-hidden rounded-l-2xl md:rounded-l-none md:rounded-t-2xl" style={{ background: "var(--bg-elevated)" }}>
                     {image ? (
-                        <img
+                        <Image
                             src={image}
                             alt={name}
-                            className="w-full h-full object-cover food-card-image"
-                            loading="lazy"
+                            width={400}
+                            height={300}
+                            className="object-cover w-full h-full food-card-image menu-card-image-fade text-transparent"
+                            loading={index < 4 ? "eager" : "lazy"}
+                            priority={index < 4}
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl opacity-30 food-card-image">
@@ -132,13 +143,6 @@ export default function MenuCard({ id, name, price, category, available, quantit
                     {/* Cinematic gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/30" />
-
-                    {/* Price badge — floating glass */}
-                    <div className="absolute top-2.5 right-2.5">
-                        <span className="price-premium text-sm sm:text-base px-2.5 py-1 rounded-xl bg-black/40 backdrop-blur-md border border-white/[0.08]">
-                            ₹{price}
-                        </span>
-                    </div>
 
                     {/* Sold out overlay */}
                     <AnimatePresence>
@@ -177,7 +181,7 @@ export default function MenuCard({ id, name, price, category, available, quantit
                                     transition={{ type: "spring", stiffness: 400, damping: 15 }}
                                     className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white text-2xl shadow-xl shadow-emerald-500/40"
                                 >
-                                    ✓
+                                    <Check className="w-6 h-6 text-white" strokeWidth={3} />
                                 </motion.div>
                             </motion.div>
                         )}
@@ -186,14 +190,19 @@ export default function MenuCard({ id, name, price, category, available, quantit
 
                 {/* ── Content ── */}
                 <div className="flex flex-col flex-1 p-3 sm:p-4 gap-2">
-                    {/* Name */}
-                    <h3 className="font-display font-bold text-sm sm:text-[15px] text-white line-clamp-1 leading-tight group-hover:text-gold-300 transition-colors duration-300">
-                        {name}
-                    </h3>
+                    {/* Name & Price */}
+                    <div className="flex flex-col gap-0.5">
+                        <h3 className="font-display font-bold text-sm sm:text-[15px] line-clamp-1 leading-tight transition-colors duration-300" style={{ color: "var(--text-primary)" }}>
+                            {name}
+                        </h3>
+                        <span className="font-semibold text-sm sm:text-[15px] drop-shadow-sm flex items-center gap-1" style={{ color: "var(--accent)" }}>
+                            ₹{price}
+                        </span>
+                    </div>
 
                     {/* Description */}
                     {description && (
-                        <p className="hidden sm:block text-xs text-zayko-400 line-clamp-2 leading-relaxed">{description}</p>
+                        <p className="hidden sm:block text-xs line-clamp-2 leading-relaxed" style={{ color: "var(--text-secondary)" }}>{description}</p>
                     )}
 
                     {/* Badges */}
@@ -208,17 +217,17 @@ export default function MenuCard({ id, name, price, category, available, quantit
                                             : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                                         }`}
                                 >
-                                    {quantity <= 3 ? <><span className="flame-icon">🔥</span> {quantity} left</> : quantity <= 5 ? `⚠️ ${quantity} left` : `✓ ${quantity}`}
+                                    {quantity <= 3 ? <><Flame className="w-3 h-3 inline-block -mt-0.5" /> {quantity} left</> : quantity <= 5 ? <><AlertTriangle className="w-3 h-3 inline-block -mt-0.5" /> {quantity} left</> : <><Check className="w-3 h-3 inline-block -mt-0.5" /> {quantity}</>}
                                 </span>
                                 {customizations && customizations.length > 0 && (
-                                    <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                                        ✨ Custom
+                                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                                        <Sparkles className="w-3 h-3" /> Custom
                                     </span>
                                 )}
                             </>
                         ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/20">
-                                ✗ Unavailable
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-red-500/15 text-red-400 border border-red-500/20">
+                                <X className="w-3 h-3" /> Unavailable
                             </span>
                         )}
                     </div>
@@ -231,10 +240,13 @@ export default function MenuCard({ id, name, price, category, available, quantit
                         }}
                         disabled={isOutOfStock}
                         whileTap={{ scale: 0.94 }}
-                        className={`w-full flex items-center justify-center gap-1.5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${!isOutOfStock
-                                ? "btn-add-premium"
-                                : "bg-zayko-700/50 text-zayko-500 cursor-not-allowed"
-                            }`}
+                        className="w-full flex items-center justify-center gap-1.5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 shadow-md hover:shadow-lg"
+                        style={{
+                            ...( !isOutOfStock 
+                                ? { background: "var(--btn-primary)", color: "#FFF", boxShadow: "0 4px 15px var(--accent-glow)" } 
+                                : { background: "var(--bg-elevated)", color: "var(--text-secondary)", opacity: 0.5, cursor: "not-allowed" } 
+                            )
+                        }}
                     >
                         <AnimatePresence mode="wait">
                             {flyAnim ? (
@@ -245,7 +257,7 @@ export default function MenuCard({ id, name, price, category, available, quantit
                                     exit={{ y: 0, opacity: 1 }}
                                     transition={{ duration: 0.3 }}
                                 >
-                                    🛒
+                                    <ShoppingCart className="w-4 h-4" />
                                 </motion.span>
                             ) : inCart > 0 ? (
                                 <motion.span

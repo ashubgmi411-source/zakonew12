@@ -14,9 +14,13 @@ import { Toaster } from "react-hot-toast";
 import Script from "next/script";
 
 export const metadata: Metadata = {
-  title: "Zayko – Order Smart. Eat Fresh.",
-  description: "Zayko — your AI-powered campus food ordering platform. Browse menu, manage wallet, and track orders in real-time.",
+  title: "Zayko 2.O",
+  description: "AI-Powered Canteen Management",
   keywords: "zayko, food ordering, campus, AI chatbot, smart canteen",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icon.png",
+  }
 };
 
 export default function RootLayout({

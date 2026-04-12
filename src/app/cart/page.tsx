@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingCart, Utensils, Trash2, Sparkles, Wallet, ArrowRight } from "lucide-react";
+import { GiCoffeeCup, GiDonut, GiMeal } from "react-icons/gi";
 
 export default function CartPage() {
     const { user, profile, loading } = useAuth();
@@ -33,7 +35,7 @@ export default function CartPage() {
         }
         if ((profile.walletBalance || 0) < total) {
             toast.error("Insufficient wallet balance. Please top up your wallet first!", {
-                icon: "💰",
+                icon: <Wallet className="w-5 h-5 text-gold-400" />,
                 style: { background: "#1e3a5f", color: "#fff" }
             });
             return;
@@ -48,7 +50,9 @@ export default function CartPage() {
             <div className="bg-zayko-800/80 backdrop-blur-xl border-b border-white/[0.06] px-4 py-4 sm:px-6 sticky top-0 z-40">
                 <div className="max-w-3xl mx-auto flex items-center justify-between">
                     <div>
-                        <h1 className="text-xl font-display font-bold text-white uppercase tracking-tight">Cart 🛒</h1>
+                        <h1 className="text-xl font-display font-bold text-white uppercase tracking-tight flex items-center justify-center gap-2">
+                            Cart <ShoppingCart className="w-6 h-6" />
+                        </h1>
                         <p className="text-[10px] text-zayko-400 font-bold tracking-widest uppercase mt-0.5">
                             {itemCount} {itemCount === 1 ? 'Item' : 'Items'} selected
                         </p>
@@ -67,11 +71,11 @@ export default function CartPage() {
             <div className="px-4 sm:px-6 max-w-3xl mx-auto py-6">
                 {items.length === 0 ? (
                     <div className="text-center py-20 bg-white/[0.03] rounded-3xl border border-white/[0.05]">
-                        <div className="text-6xl mb-4">🛒</div>
+                        <div className="mx-auto w-16 h-16 text-zayko-600 mb-4 flex justify-center"><ShoppingCart className="w-full h-full" /></div>
                         <h3 className="text-xl font-display font-bold text-white mb-2">Your cart is empty</h3>
                         <p className="text-zayko-400 mb-8 max-w-[200px] mx-auto text-sm">Delicious food is just a few taps away!</p>
-                        <Link href="/" className="px-8 py-3 bg-gold-400 text-zayko-900 rounded-xl font-bold shadow-lg shadow-gold-400/20 active:scale-95 transition-all inline-block hover:bg-gold-500">
-                            Browse Menu 🍽️
+                        <Link href="/" className="px-8 py-3 bg-gold-400 text-zayko-900 rounded-xl font-bold shadow-lg shadow-gold-400/20 active:scale-95 transition-all inline-flex items-center gap-2 hover:bg-gold-500">
+                            Browse Menu <Utensils className="w-4 h-4" />
                         </Link>
                     </div>
                 ) : (
@@ -94,7 +98,7 @@ export default function CartPage() {
                                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <span className="opacity-40">
-                                                    {item.category === "beverages" ? "☕" : item.category === "snacks" ? "🍿" : item.category === "meals" ? "🍱" : "🍽️"}
+                                                    {item.category === "beverages" ? <GiCoffeeCup className="w-8 h-8" /> : item.category === "snacks" ? <GiDonut className="w-8 h-8" /> : item.category === "meals" ? <GiMeal className="w-8 h-8" /> : <Utensils className="w-8 h-8" />}
                                                 </span>
                                             )}
                                         </div>
@@ -141,7 +145,7 @@ export default function CartPage() {
                                             onClick={() => { removeItem(item.id, item.selectedOptions); toast.success("Removed"); }}
                                             className="p-2 text-zayko-600 hover:text-red-400 transition-colors active:scale-75 shrink-0"
                                         >
-                                            <span className="text-lg">🗑️</span>
+                                            <Trash2 className="w-5 h-5" />
                                         </button>
                                     </motion.div>
                                 ))}
@@ -159,7 +163,7 @@ export default function CartPage() {
                                 </div>
                                 <div className="flex justify-between text-xs sm:text-sm">
                                     <span className="text-zayko-500">Platform Fee</span>
-                                    <span className="text-emerald-400 font-bold bg-emerald-400/10 px-2 py-0.5 rounded-md uppercase tracking-tighter text-[10px]">FREE ✨</span>
+                                    <span className="text-emerald-400 font-bold bg-emerald-400/10 px-2 py-0.5 rounded-md uppercase tracking-tighter text-[10px] flex items-center justify-center gap-1">FREE <Sparkles className="w-3 h-3" /></span>
                                 </div>
                                 <div className="h-px bg-white/[0.04] my-2" />
                                 <div className="flex justify-between items-center">
@@ -171,7 +175,7 @@ export default function CartPage() {
                             {/* Wallet Info Badge */}
                             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
-                                    <span className="w-8 h-8 rounded-full bg-gold-400/10 flex items-center justify-center text-sm">💰</span>
+                                    <span className="w-8 h-8 rounded-full bg-gold-400/10 flex items-center justify-center text-gold-400"><Wallet className="w-4 h-4" /></span>
                                     <div className="text-left">
                                         <p className="text-[10px] text-zayko-500 font-bold uppercase tracking-widest leading-none mb-1">Wallet Balance</p>
                                         <p className={`text-sm font-bold ${(profile?.walletBalance || 0) >= total ? "text-emerald-400" : "text-red-400"}`}>
@@ -207,7 +211,7 @@ export default function CartPage() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <span>₹{total}</span>
-                                <span className="text-2xl group-hover:translate-x-1 transition-transform">→</span>
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </div>
                         </motion.button>
 

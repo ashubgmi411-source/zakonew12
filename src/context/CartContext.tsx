@@ -17,6 +17,8 @@ interface CartContextType {
     clearCart: () => void;
     total: number;
     itemCount: number;
+    isCartOpen: boolean;
+    setIsCartOpen: (open: boolean) => void;
 }
 
 const CartContext = createContext<CartContextType>({
@@ -27,6 +29,8 @@ const CartContext = createContext<CartContextType>({
     clearCart: () => { },
     total: 0,
     itemCount: 0,
+    isCartOpen: false,
+    setIsCartOpen: () => { },
 });
 
 const CART_STORAGE_KEY = "canteen_cart";
@@ -42,6 +46,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
             return [];
         }
     });
+
+    // Global Drawer State
+    const [isCartOpen, setIsCartOpen] = useState(false);
 
     // UX FIX: Persist cart to localStorage on every change
     useEffect(() => {
@@ -102,7 +109,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
     return (
-        <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, total, itemCount }}>
+        <CartContext.Provider value={{ items, addItem, removeItem, updateQuantity, clearCart, total, itemCount, isCartOpen, setIsCartOpen }}>
             {children}
         </CartContext.Provider>
     );

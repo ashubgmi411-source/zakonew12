@@ -10,15 +10,17 @@ import { useOrderNotifications } from "@/hooks/useOrderNotifications";
 import type { Order } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { ClipboardList, Calendar, Utensils, Star, Receipt, Printer, Wallet, Clock, CheckCircle2, ChefHat, PartyPopper, Package, XCircle } from "lucide-react";
+import { GiNoodles } from "react-icons/gi";
 
 /* ─── Status Config ──────────────────────────────────────── */
-const statusConfig: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-    pending: { label: "Pending", color: "text-amber-400", bg: "bg-amber-400/10", icon: "⏳" },
-    confirmed: { label: "Confirmed", color: "text-blue-400", bg: "bg-blue-400/10", icon: "✅" },
-    preparing: { label: "Preparing", color: "text-orange-400", bg: "bg-orange-400/10", icon: "👨‍🍳" },
-    ready: { label: "Ready!", color: "text-emerald-400", bg: "bg-emerald-400/10", icon: "🎉" },
-    completed: { label: "Completed", color: "text-zayko-400", bg: "bg-white/5", icon: "📦" },
-    cancelled: { label: "Cancelled", color: "text-red-400", bg: "bg-red-400/10", icon: "✗" },
+const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.JSX.Element }> = {
+    pending: { label: "Pending", color: "text-amber-400", bg: "bg-amber-400/10", icon: <Clock className="w-5 h-5" /> },
+    confirmed: { label: "Confirmed", color: "text-blue-400", bg: "bg-blue-400/10", icon: <CheckCircle2 className="w-5 h-5" /> },
+    preparing: { label: "Preparing", color: "text-orange-400", bg: "bg-orange-400/10", icon: <ChefHat className="w-5 h-5" /> },
+    ready: { label: "Ready!", color: "text-emerald-400", bg: "bg-emerald-400/10", icon: <PartyPopper className="w-5 h-5" /> },
+    completed: { label: "Completed", color: "text-zayko-400", bg: "bg-white/5", icon: <Package className="w-5 h-5" /> },
+    cancelled: { label: "Cancelled", color: "text-red-400", bg: "bg-red-400/10", icon: <XCircle className="w-5 h-5" /> },
 };
 
 /* ─── Main Orders Page ───────────────────────────────────── */
@@ -78,7 +80,7 @@ export default function OrdersPage() {
                 })
             });
             if (res.ok) {
-                toast.success("Feedback submitted! ❤️");
+                toast.success("Feedback submitted!");
                 setFeedbackOrder(null);
                 setRating(5);
                 setComment("");
@@ -112,14 +114,14 @@ export default function OrdersPage() {
             <div className="bg-zayko-800/80 backdrop-blur-xl border-b border-white/[0.06] px-4 py-4 sm:px-6 sticky top-0 z-40">
                 <div className="max-w-3xl mx-auto flex items-center justify-between">
                     <div>
-                        <h1 className="text-xl font-display font-bold text-white">My Orders 📋</h1>
+                        <h1 className="text-xl font-display font-bold text-white flex items-center gap-2">My Orders <ClipboardList className="w-6 h-6" /></h1>
                         <p className="text-xs text-zayko-400 mt-0.5">{orders.length} orders total</p>
                     </div>
                     <Link
                         href="/orders/scheduled"
                         className="px-4 py-2 bg-blue-500/15 text-blue-400 border border-blue-500/20 rounded-xl text-xs font-bold hover:bg-blue-500/25 transition-all flex items-center gap-1.5"
                     >
-                        🗓️ Scheduled
+                        <Calendar className="w-4 h-4" /> Scheduled
                     </Link>
                 </div>
             </div>
@@ -127,11 +129,11 @@ export default function OrdersPage() {
             <div className="px-4 sm:px-6 max-w-3xl mx-auto py-6">
                 {orders.length === 0 ? (
                     <div className="text-center py-20 bg-white/[0.03] rounded-3xl border border-white/[0.05]">
-                        <div className="text-6xl mb-4">📋</div>
+                        <div className="mx-auto w-16 h-16 text-zayko-600 mb-4 flex justify-center"><ClipboardList className="w-full h-full" /></div>
                         <h3 className="text-xl font-display font-bold text-white mb-2">No orders yet</h3>
                         <p className="text-zayko-400 mb-6">Your hungry stomach is waiting...</p>
-                        <Link href="/" className="px-6 py-3 bg-gold-400 text-zayko-900 rounded-xl font-bold shadow-lg shadow-gold-400/20 active:scale-95 transition-all inline-block">
-                            Order Something 🍽️
+                        <Link href="/" className="px-6 py-3 bg-gold-400 text-zayko-900 rounded-xl font-bold shadow-lg shadow-gold-400/20 active:scale-95 transition-all inline-flex items-center gap-2">
+                            Order Something <Utensils className="w-4 h-4" />
                         </Link>
                     </div>
                 ) : (
@@ -191,7 +193,7 @@ export default function OrdersPage() {
                                             onClick={() => setRating(star)}
                                             className={`transition-all active:scale-75 min-w-[48px] min-h-[48px] flex items-center justify-center ${star <= rating ? "text-gold-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" : "text-zayko-700"}`}
                                         >
-                                            ★
+                                            <Star className={`w-10 h-10 ${star <= rating ? "fill-gold-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] scale-110" : "text-zayko-700"}`} />
                                         </button>
                                     ))}
                                 </div>
@@ -213,9 +215,10 @@ export default function OrdersPage() {
                                     <button
                                         onClick={submitFeedback}
                                         disabled={submitting}
-                                        className="flex-[2] py-4 min-h-[52px] bg-gold-400 text-zayko-900 font-display font-bold rounded-2xl hover:bg-gold-500 shadow-lg shadow-gold-400/10 transition-all disabled:opacity-50 active:scale-95"
+                                        className="flex-[2] py-4 min-h-[52px] bg-gold-400 text-zayko-900 font-display font-bold rounded-2xl hover:bg-gold-500 shadow-lg shadow-gold-400/10 transition-all disabled:opacity-50 active:scale-95 flex items-center justify-center gap-2"
                                     >
-                                        {submitting ? "Sending..." : "Submit Review ⭐"}
+                                        {submitting ? "Sending..." : "Submit Review"}
+                                        {!submitting && <Star className="w-4 h-4 fill-current" />}
                                     </button>
                                 </div>
                             </div>
@@ -247,7 +250,7 @@ function OrderCard({ order, onReview, onReceipt }: { order: Order; onReview?: ()
             <div className="p-4 border-b border-white/[0.04]">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                        <span className="text-xl">{st.icon}</span>
+                        <span className="text-xl flex items-center justify-center p-2 rounded-full bg-white/5">{st.icon}</span>
                         <div>
                             <h3 className="text-sm font-bold text-white leading-none mb-1">Order #{order.orderId}</h3>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${st.bg} ${st.color}`}>
@@ -262,7 +265,7 @@ function OrderCard({ order, onReview, onReceipt }: { order: Order; onReview?: ()
                 {order.status === "ready" ? (
                     <div className="p-3 rounded-xl bg-emerald-400/10 border border-emerald-400/20">
                         <p className="text-emerald-400 text-xs font-bold flex items-center gap-1.5">
-                            <span className="animate-bounce">🍜</span> Your food is ready for pickup!
+                            <GiNoodles className="w-4 h-4 animate-bounce" /> Your food is ready for pickup!
                         </p>
                     </div>
                 ) : (order.status === "preparing" || order.status === "confirmed") && (order.readyAt || order.estimatedReadyAt) ? (
@@ -298,14 +301,14 @@ function OrderCard({ order, onReview, onReceipt }: { order: Order; onReview?: ()
                             onClick={onReview}
                             className="flex-1 py-2.5 border border-white/10 text-white rounded-xl text-xs font-bold hover:bg-white/5 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                         >
-                            ⭐ Rate Your Food
+                            <Star className="w-4 h-4 fill-current" /> Rate Your Food
                         </button>
                         {onReceipt && (
                             <button
                                 onClick={onReceipt}
                                 className="flex-1 py-2.5 border border-gold-400/20 text-gold-400 rounded-xl text-xs font-bold hover:bg-gold-400/5 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                             >
-                                🧾 View Receipt
+                                <Receipt className="w-4 h-4" /> View Receipt
                             </button>
                         )}
                     </div>
@@ -316,7 +319,7 @@ function OrderCard({ order, onReview, onReceipt }: { order: Order; onReview?: ()
                         onClick={onReceipt}
                         className="mt-4 w-full py-2.5 border border-white/10 text-zayko-300 rounded-xl text-xs font-bold hover:bg-white/5 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
-                        🧾 View Receipt
+                        <Receipt className="w-4 h-4" /> View Receipt
                     </button>
                 )}
             </div>
@@ -374,7 +377,7 @@ function ReceiptModal({ order, profile, onClose }: { order: Order; profile: any;
                 {/* Header */}
                 <div className="p-5 border-b border-white/[0.06] flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-xl">🧾</span>
+                        <Receipt className="w-6 h-6 text-white" />
                         <h3 className="text-lg font-display font-bold text-white">Order Receipt</h3>
                     </div>
                     <button
@@ -464,7 +467,7 @@ function ReceiptModal({ order, profile, onClose }: { order: Order; profile: any;
 
                         {/* Payment Method */}
                         <div className="text-center text-[10px] text-zayko-500 space-y-1">
-                            <p>💰 Paid via <span className="text-zayko-300 font-bold">Zayko Wallet</span></p>
+                            <p><Wallet className="w-3 h-3 inline-block -mt-0.5 mr-1" />Paid via <span className="text-zayko-300 font-bold">Zayko Wallet</span></p>
                             <p className="italic">Thank you for ordering with Zayko!</p>
                         </div>
                     </div>
@@ -476,7 +479,7 @@ function ReceiptModal({ order, profile, onClose }: { order: Order; profile: any;
                         onClick={handlePrint}
                         className="w-full py-3.5 bg-gradient-to-r from-gold-400 to-gold-500 text-zayko-900 font-display font-bold rounded-2xl hover:shadow-[0_4px_20px_rgba(251,191,36,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
-                        🖨️ Print Receipt
+                        <Printer className="w-5 h-5" /> Print Receipt
                     </button>
                 </div>
 

@@ -11,29 +11,18 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
-
-// Safe theme hook that doesn't throw if ThemeProvider isn't wrapping this
-import { useTheme as useThemeRaw } from "@/context/ThemeContext";
-
-function useSafeTheme() {
-    try {
-        return useThemeRaw();
-    } catch {
-        return null;
-    }
-}
+import { Utensils, ClipboardList, Wallet, User, Bot } from "lucide-react";
 
 export default function MobileBottomNav() {
     const pathname = usePathname();
     const { user } = useAuth();
     const { itemCount } = useCart();
-    const themeCtx = useSafeTheme();
 
     const navItems = [
-        { href: "/", label: "Menu", icon: "🍽️" },
-        { href: "/orders", label: "Orders", icon: "📋" },
-        { href: "/wallet", label: "Wallet", icon: "💰" },
-        { href: "/profile", label: "Profile", icon: "👤" },
+        { href: "/", label: "Menu", icon: <Utensils className="w-5 h-5 md:w-6 md:h-6" /> },
+        { href: "/orders", label: "Orders", icon: <ClipboardList className="w-5 h-5 md:w-6 md:h-6" /> },
+        { href: "/wallet", label: "Wallet", icon: <Wallet className="w-5 h-5 md:w-6 md:h-6" /> },
+        { href: "/profile", label: "Profile", icon: <User className="w-5 h-5 md:w-6 md:h-6" /> },
     ];
 
     if (!user) return null;
@@ -45,7 +34,7 @@ export default function MobileBottomNav() {
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden px-3 pb-2">
             {/* Premium glass container */}
-            <div className="premium-bottom-nav overflow-hidden">
+            <div className="overflow-hidden rounded-2xl backdrop-blur-3xl shadow-xl border" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
                 <div className="grid grid-cols-5 px-2 py-1 relative">
                     {navItems.map((item) => {
                         const isActive = item.href === "/"
@@ -56,16 +45,15 @@ export default function MobileBottomNav() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl transition-all duration-300 relative ${isActive
-                                        ? "text-gold-400"
-                                        : "text-zayko-500 active:scale-90"
-                                    }`}
+                                className="flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl transition-all duration-300 relative active:scale-90"
+                                style={{ color: isActive ? "var(--accent)" : "var(--text-secondary)" }}
                             >
                                 {/* Active indicator bar */}
                                 {isActive && (
                                     <motion.div
                                         layoutId="mobile-nav-indicator"
-                                        className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-gradient-to-r from-gold-400 to-gold-500 shadow-[0_2px_12px_rgba(251,191,36,0.5)]"
+                                        className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full shadow-[0_2px_12px_var(--accent-glow)]"
+                                        style={{ background: "var(--btn-primary)" }}
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}
@@ -74,7 +62,8 @@ export default function MobileBottomNav() {
                                 {isActive && (
                                     <motion.div
                                         layoutId="mobile-nav-bg"
-                                        className="absolute inset-1 rounded-xl bg-gold-400/[0.06]"
+                                        className="absolute inset-1 rounded-xl"
+                                        style={{ background: "var(--accent-glow)" }}
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}
@@ -109,21 +98,20 @@ export default function MobileBottomNav() {
                         );
                     })}
 
-                    {/* Theme Tab */}
-                    {themeCtx && (
-                        <button
-                            onClick={themeCtx.togglePanel}
-                            className="flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl transition-all duration-300 text-zayko-500 active:scale-90"
-                        >
-                            <motion.span
-                                className="text-lg relative z-10"
-                                whileTap={{ scale: 0.9, rotate: 20 }}
-                            >
-                                {themeCtx.themeConfig.icon}
-                            </motion.span>
-                            <span className="text-[10px] font-semibold relative z-10 text-zayko-500">Theme</span>
-                        </button>
-                    )}
+                    {/* Jarvis AI Assistant Button */}
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => window.dispatchEvent(new Event('open-jarvis'))}
+                        className="flex flex-col items-center gap-1 py-1"
+                    >
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center relative shadow-lg"
+                             style={{ background: "var(--btn-primary)", boxShadow: "0 4px 15px var(--accent-glow)" }}>
+                            <Bot className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-[10px] font-bold" style={{ color: "var(--accent)" }}>
+                            Jarvis
+                        </span>
+                    </motion.button>
                 </div>
 
                 {/* iPhone safe area */}

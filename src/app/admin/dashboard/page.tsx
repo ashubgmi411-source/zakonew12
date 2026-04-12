@@ -207,9 +207,9 @@ export default function AdminDashboard() {
                     ) : stats ? (
                         <>
                             {/* Canteen Toggle + Stats Cards */}
-                            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8 animate-fade-in">
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8 animate-fade-in">
                                 {/* Canteen Toggle Card */}
-                                <div className="col-span-2 lg:col-span-1 bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4 flex flex-col items-center justify-center gap-3">
+                                <div className="col-span-2 md:col-span-4 lg:col-span-1 bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4 flex flex-col items-center justify-center gap-3">
                                     <span className="text-xs text-zayko-400 font-semibold">Canteen</span>
                                     <button
                                         onClick={toggleCanteen}
@@ -337,8 +337,9 @@ export default function AdminDashboard() {
                                 {/* Daily Revenue Chart */}
                                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6 animate-slide-up">
                                     <h3 className="text-lg font-display font-bold text-white mb-4">📈 Daily Revenue</h3>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <BarChart data={stats.dailySales.slice(-14)}>
+                                    <div className="h-[200px] md:h-[300px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={stats.dailySales.slice(-14)}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
                                             <XAxis dataKey="date" tick={{ fill: "#94a3b8", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
                                             <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
@@ -349,13 +350,15 @@ export default function AdminDashboard() {
                                             <Bar dataKey="revenue" fill="#d4a017" radius={[6, 6, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
+                                    </div>
                                 </div>
 
                                 {/* Daily Orders Chart */}
                                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6 animate-slide-up">
                                     <h3 className="text-lg font-display font-bold text-white mb-4">📊 Daily Orders</h3>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <LineChart data={stats.dailySales.slice(-14)}>
+                                    <div className="h-[200px] md:h-[300px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <LineChart data={stats.dailySales.slice(-14)}>
                                             <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
                                             <XAxis dataKey="date" tick={{ fill: "#94a3b8", fontSize: 10 }} tickFormatter={(v) => v.slice(5)} />
                                             <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
@@ -365,14 +368,16 @@ export default function AdminDashboard() {
                                             <Line type="monotone" dataKey="orders" stroke="#0d9488" strokeWidth={3} dot={{ fill: "#0d9488", r: 5 }} />
                                         </LineChart>
                                     </ResponsiveContainer>
+                                    </div>
                                 </div>
 
                                 {/* Top Items Pie Chart */}
                                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6 animate-slide-up">
                                     <h3 className="text-lg font-display font-bold text-white mb-4">🔥 Popular Items</h3>
                                     {stats.topItems.length > 0 ? (
-                                        <ResponsiveContainer width="100%" height={300}>
-                                            <PieChart>
+                                        <div className="h-[200px] md:h-[300px] w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
                                                 <Pie
                                                     data={stats.topItems.slice(0, 6)}
                                                     cx="50%"
@@ -389,25 +394,28 @@ export default function AdminDashboard() {
                                                 <Tooltip contentStyle={{ background: "#0f2035", border: "1px solid #1e3a5f", borderRadius: "12px", color: "#fff" }} />
                                                 <Legend wrapperStyle={{ color: "#94a3b8" }} />
                                             </PieChart>
-                                        </ResponsiveContainer>
+                                            </ResponsiveContainer>
+                                        </div>
                                     ) : (
-                                        <div className="flex items-center justify-center h-[300px] text-zayko-500">No data yet</div>
+                                        <div className="flex items-center justify-center h-[200px] md:h-[300px] text-zayko-500">No data yet</div>
                                     )}
                                 </div>
 
                                 {/* Monthly Revenue */}
                                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6 animate-slide-up">
                                     <h3 className="text-lg font-display font-bold text-white mb-4">📅 Monthly Revenue</h3>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <BarChart data={stats.monthlySales}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
-                                            <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                                            <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                                            <Tooltip contentStyle={{ background: "#0f2035", border: "1px solid #1e3a5f", borderRadius: "12px", color: "#fff" }} />
-                                            <Bar dataKey="revenue" fill="#60a5fa" radius={[6, 6, 0, 0]} />
-                                            <Bar dataKey="orders" fill="#d4a017" radius={[6, 6, 0, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
+                                    <div className="h-[200px] md:h-[300px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={stats.monthlySales}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#1e3a5f" />
+                                                <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                                                <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                                                <Tooltip contentStyle={{ background: "#0f2035", border: "1px solid #1e3a5f", borderRadius: "12px", color: "#fff" }} />
+                                                <Bar dataKey="revenue" fill="#60a5fa" radius={[6, 6, 0, 0]} />
+                                                <Bar dataKey="orders" fill="#d4a017" radius={[6, 6, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
                                 </div>
                             </div>
                         </>

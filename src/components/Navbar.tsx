@@ -5,10 +5,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Utensils, ShoppingCart, ClipboardList, Wallet, User, Zap } from "lucide-react";
 
 export default function Navbar() {
     const { user, profile, signOut } = useAuth();
-    const { itemCount } = useCart();
+    const { itemCount, isCartOpen, setIsCartOpen } = useCart();
     const pathname = usePathname();
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -17,15 +18,15 @@ export default function Navbar() {
     if (pathname?.startsWith("/executive")) return null;
 
     const navLinks = [
-        { href: "/", label: "Menu", icon: "🍽️" },
-        { href: "/cart", label: "Cart", icon: "🛒", badge: itemCount },
-        { href: "/orders", label: "Orders", icon: "📋" },
-        { href: "/wallet", label: "Wallet", icon: "💰" },
-        { href: "/profile", label: "Profile", icon: "👤" },
+        { href: "/", label: "Menu", icon: <Utensils className="w-5 h-5" /> },
+        { href: "#cart", isCartToggle: true, label: "Cart", icon: <ShoppingCart className="w-5 h-5" />, badge: itemCount },
+        { href: "/orders", label: "Orders", icon: <ClipboardList className="w-5 h-5" /> },
+        { href: "/wallet", label: "Wallet", icon: <Wallet className="w-5 h-5" /> },
+        { href: "/profile", label: "Profile", icon: <User className="w-5 h-5" /> },
     ];
 
     return (
-        <nav className="sticky top-0 z-50 premium-navbar">
+        <nav className="sticky top-0 z-50" style={{ background: "var(--bg-primary)", borderBottom: "1px solid var(--border)" }}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-14 sm:h-16">
                     {/* ── Logo ── */}
@@ -33,13 +34,14 @@ export default function Navbar() {
                         <motion.div
                             whileHover={{ scale: 1.1, rotate: 5 }}
                             whileTap={{ scale: 0.95 }}
-                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center text-zayko-900 font-bold text-sm sm:text-lg shadow-lg shadow-gold-400/20"
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg"
+                            style={{ background: "var(--btn-primary)" }}
                         >
-                            ⚡
+                            <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white fill-current" />
                         </motion.div>
                         <div>
-                            <h1 className="text-sm sm:text-lg font-display font-bold text-white tracking-tight">Zayko</h1>
-                            <p className="text-[9px] sm:text-[10px] text-zayko-400 -mt-0.5 hidden sm:block font-medium">Order Smart. Eat Fresh.</p>
+                            <h1 className="text-sm sm:text-lg font-display font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>Zayko</h1>
+                            <p className="text-[9px] sm:text-[10px] -mt-0.5 hidden sm:block font-medium" style={{ color: "var(--text-secondary)" }}>Order Smart. Eat Fresh.</p>
                         </div>
                     </Link>
 
@@ -48,17 +50,47 @@ export default function Navbar() {
                         <div className="hidden md:flex items-center gap-0.5">
                             {navLinks.map((link) => {
                                 const isActive = pathname === link.href;
-                                return (
-                                    <Link
+                                return link.isCartToggle ? (
+                                    <button
                                         key={link.href}
-                                        href={link.href}
-                                        className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 nav-link-premium ${isActive
-                                                ? "text-gold-400 active"
-                                                : "text-zayko-300 hover:text-white"
-                                            }`}
+                                        onClick={() => setIsCartOpen(true)}
+                                        className="relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                                        style={{ color: "var(--text-secondary)" }}
                                     >
                                         <motion.span
                                             className="text-sm"
+                                            whileHover={{ scale: 1.15 }}
+                                            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                        >
+                                            {link.icon}
+                                        </motion.span>
+                                        <span>{link.label}</span>
+
+                                        <AnimatePresence>
+                                            {link.badge ? (
+                                                <motion.span
+                                                    key={link.badge}
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    exit={{ scale: 0 }}
+                                                    transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                                                    className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-gradient-to-br from-red-500 to-red-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-red-500/30 px-1"
+                                                >
+                                                    {link.badge}
+                                                </motion.span>
+                                            ) : null}
+                                        </AnimatePresence>
+                                    </button>
+                                ) : (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        className="relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300"
+                                        style={{ color: isActive ? "var(--text-primary)" : "var(--text-secondary)" }}
+                                    >
+                                        <motion.span
+                                            className="text-sm"
+                                            style={{ color: isActive ? "var(--accent)" : "inherit" }}
                                             whileHover={{ scale: 1.15 }}
                                             transition={{ type: "spring", stiffness: 400, damping: 15 }}
                                         >
@@ -70,7 +102,8 @@ export default function Navbar() {
                                         {isActive && (
                                             <motion.div
                                                 layoutId="navbar-active-pill"
-                                                className="absolute inset-0 rounded-xl bg-gold-400/10 border border-gold-400/15"
+                                                className="absolute inset-0 rounded-xl"
+                                                style={{ background: "var(--accent-glow)" }}
                                                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                             />
                                         )}
@@ -102,22 +135,26 @@ export default function Navbar() {
                         {user && profile && (
                             <Link
                                 href="/wallet"
-                                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.1] transition-all duration-300 group"
+                                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border transition-all duration-300 group"
+                                style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}
                             >
-                                <span className="text-xs sm:text-sm group-hover:scale-110 transition-transform duration-200">💰</span>
-                                <span className="price-premium text-xs sm:text-sm">₹{profile.walletBalance || 0}</span>
+                                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform duration-200" style={{ color: "var(--accent)" }} />
+                                <span className="font-bold text-xs sm:text-sm" style={{ color: "var(--text-primary)" }}>₹{profile.walletBalance || 0}</span>
                             </Link>
                         )}
 
                         {/* Desktop profile */}
                         {user && profile && (
                             <div className="hidden md:flex items-center gap-3">
-                                <Link href="/profile" className="flex items-center gap-3 px-3 py-1.5 rounded-xl hover:bg-white/[0.06] transition-all duration-200 group">
+                                <Link href="/profile" className="flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all duration-200 group">
                                     <div className="text-right">
-                                        <p className="text-sm font-semibold text-white group-hover:text-gold-400 transition-colors">{profile.name}</p>
-                                        <p className="text-[10px] text-zayko-400">{profile.rollNumber}</p>
+                                        <p className="text-sm font-semibold transition-colors" style={{ color: "var(--text-primary)" }}>{profile.name}</p>
+                                        <p className="text-[10px]" style={{ color: "var(--text-secondary)" }}>{profile.rollNumber}</p>
                                     </div>
-                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold-400 to-gold-500 flex items-center justify-center text-zayko-900 font-bold text-sm">
+                                    <div 
+                                        className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm"
+                                        style={{ background: "var(--btn-primary)", color: "#FFF" }}
+                                    >
                                         {profile.name.charAt(0)}
                                     </div>
                                 </Link>
@@ -125,11 +162,35 @@ export default function Navbar() {
                                     onClick={signOut}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors duration-200"
+                                    className="px-3 py-2 text-sm text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors duration-200"
                                 >
                                     Logout
                                 </motion.button>
                             </div>
+                        )}
+
+                        {/* Mobile Cart Button */}
+                        {user && (
+                            <button
+                                onClick={() => setIsCartOpen(true)}
+                                className="md:hidden relative p-2 rounded-xl transition-transform active:scale-95"
+                                style={{ color: "var(--text-primary)" }}
+                            >
+                                <ShoppingCart className="w-5 h-5" />
+                                <AnimatePresence>
+                                    {itemCount > 0 && (
+                                        <motion.span
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            exit={{ scale: 0 }}
+                                            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                                            className="absolute top-0 right-0 min-w-[16px] h-4 bg-gradient-to-br from-red-500 to-red-600 text-white text-[9px] rounded-full flex items-center justify-center font-bold px-1"
+                                        >
+                                            {itemCount}
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </button>
                         )}
 
                         {/* Mobile hamburger */}
@@ -137,7 +198,8 @@ export default function Navbar() {
                             <motion.button
                                 onClick={() => setMobileOpen(!mobileOpen)}
                                 whileTap={{ scale: 0.9 }}
-                                className="md:hidden p-2 rounded-xl hover:bg-white/[0.06] transition-colors text-white"
+                                className="md:hidden p-2 rounded-xl transition-colors"
+                                style={{ color: "var(--text-primary)" }}
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     {mobileOpen ? (
@@ -162,25 +224,24 @@ export default function Navbar() {
                             className="md:hidden overflow-hidden"
                         >
                             <div className="pb-3 flex flex-col gap-1 border-t border-white/[0.05] pt-3">
-                                <Link
-                                    href="/cart"
-                                    onClick={() => setMobileOpen(false)}
-                                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-zayko-300 hover:text-white hover:bg-white/[0.05] transition-all"
+                                <button
+                                    onClick={() => { setMobileOpen(false); setIsCartOpen(true); }}
+                                    className="w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-zayko-300 hover:text-white hover:bg-white/[0.05] transition-all"
                                 >
-                                    <span className="text-lg">🛒</span>
+                                    <ShoppingCart className="w-5 h-5" />
                                     <span>Cart</span>
                                     {itemCount > 0 && (
                                         <span className="ml-auto w-5 h-5 bg-gradient-to-br from-red-500 to-red-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                                             {itemCount}
                                         </span>
                                     )}
-                                </Link>
+                                </button>
                                 <Link
                                     href="/profile"
                                     onClick={() => setMobileOpen(false)}
                                     className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-zayko-300 hover:text-white hover:bg-white/[0.05] transition-all"
                                 >
-                                    <span className="text-lg">👤</span>
+                                    <User className="w-5 h-5" />
                                     <span>Profile</span>
                                 </Link>
                                 {profile && (

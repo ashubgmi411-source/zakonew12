@@ -9,8 +9,8 @@
 import React, { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeProvider } from "@/context/ThemeContext";
-import ThemeToggle from "@/components/ui/ThemeToggle";
-import ThemePanel from "@/components/ui/ThemePanel";
+import FloatingThemePalette from "@/components/ui/FloatingThemePalette";
+import CartDrawer from "@/components/CartDrawer";
 import "@/styles/themes.css";
 
 const EXCLUDED_PREFIXES = ["/admin", "/stock", "/executive"];
@@ -31,8 +31,8 @@ export default function UserThemeWrapper({ children }: { children: ReactNode }) 
   return (
     <ThemeProvider>
       {children}
-      <ThemeToggle />
-      <ThemePanel />
+      <FloatingThemePalette />
+      <CartDrawer />
     </ThemeProvider>
   );
 }

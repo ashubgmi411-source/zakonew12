@@ -4,9 +4,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Bot, Check, X, Mic, Send } from "lucide-react";
 import toast from "react-hot-toast";
 import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
 import { getRespectfulGreeting } from "@/services/llmService";
+import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface ChatMessage {
     role: "assistant" | "user" | "system";
@@ -46,6 +49,8 @@ export default function JarvisChat() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
     const [processing, setProcessing] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [confirmOrder, setConfirmOrder] = useState<any>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -53,11 +58,18 @@ export default function JarvisChat() {
     const {
         isListening,
         transcript: voiceTranscript,
+        interimTranscript,
         startListening,
         stopListening,
-    } = useVoiceAssistant();
+        speak
+    } = useVoiceAssistant({
+        onFinalTranscript: (text) => {
+            setInput(text);
+            handleSend(undefined, undefined, text);
+        }
+    });
 
-    // When voice transcript updates, fill the input
+    // When voice transcript updates, fill the input (fallback)
     useEffect(() => {
         if (voiceTranscript && !isListening) {
             setInput(voiceTranscript);
@@ -78,7 +90,7 @@ export default function JarvisChat() {
             setMessages([
                 {
                     role: "assistant",
-                    content: `${greeting}! 🙏 Main hoon Jarvis — Zayko AI Ordering Engine.\n\nSeedha order bolo, jaise:\n• "6 milk"\n• "2 samosa aur 1 chai"\n• "3 coffee order karo"\n\nMain turant process karunga! ⚡`,
+                    content: `${greeting}! Main hoon Jarvis — Zayko AI Ordering Engine.\n\nSeedha order bolo, jaise:\n• "6 milk"\n• "2 samosa aur 1 chai"\n• "3 coffee order karo"\n\nMain turant process karunga!`,
                     timestamp: Date.now(),
                 },
             ]);
@@ -90,6 +102,42 @@ export default function JarvisChat() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
+    // Order Live Status Voice Announcer
+    useEffect(() => {
+        if (!user || !profile) return;
+        
+        // Listen to the most recent active order for this user
+        const q = query(
+            collection(db, "orders"),
+            where("userId", "==", user.uid),
+            where("status", "in", ["pending", "confirmed", "preparing", "ready"]),
+            orderBy("createdAt", "desc"),
+            limit(1)
+        );
+
+        let previousStatus: string | null = null;
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) return;
+            const orderDoc = snapshot.docs[0];
+            const currentStatus = orderDoc.data().status;
+
+            // Only speak if status changed (and we had a previous status to avoid speaking on mount)
+            if (previousStatus && currentStatus !== previousStatus) {
+                if (currentStatus === "confirmed") {
+                    speak("Aapka order confirm ho gaya hai, abhi prepare ho raha hai");
+                } else if (currentStatus === "preparing") {
+                    speak("Aapka order tayar ho raha hai, thoda wait karein");
+                } else if (currentStatus === "ready") {
+                    speak("Aapka order ready hai, please pick up karein");
+                }
+            }
+            previousStatus = currentStatus;
+        });
+
+        return () => unsubscribe();
+    }, [user, profile, speak]);
+
     // Focus input on open
     useEffect(() => {
         if (open) {
@@ -97,8 +145,28 @@ export default function JarvisChat() {
         }
     }, [open]);
 
-    const handleSend = useCallback(async (action?: string, orderItems?: OrderedItem[]) => {
-        const text = input.trim();
+    // Handle open from Mobile NavBar
+    useEffect(() => {
+        const handler = () => setOpen(true);
+        window.addEventListener('open-jarvis', handler);
+        return () => window.removeEventListener('open-jarvis', handler);
+    }, []);
+
+    const handleConfirmLLM = async () => {
+        if (!confirmOrder) return;
+        setShowConfirm(false);
+        const execItems = [{
+            item_id: confirmOrder.itemId,
+            name: confirmOrder.itemName,
+            quantity: confirmOrder.quantity,
+            unit_price: confirmOrder.price,
+            total_price: confirmOrder.price * confirmOrder.quantity
+        }];
+        await handleSend("execute_order", execItems);
+    };
+
+    const handleSend = useCallback(async (action?: string, orderItems?: OrderedItem[], overrideText?: string) => {
+        const text = overrideText || input.trim();
         if ((!text && !action) || processing) return;
 
         const userMsg = text || (action === "execute_order" ? "✅ Order Confirm" : action === "place_order" ? "Place Order" : "");
@@ -132,39 +200,70 @@ export default function JarvisChat() {
             const data = await res.json();
 
             if (res.ok) {
-                // Determine if this is a structured response
-                const isStructured = data.status && ["ORDER_CONFIRMED", "ITEM_NOT_FOUND", "STOCK_ERROR", "ORDER_PLACED", "ORDER_FAILED", "CHAT_MODE"].includes(data.status);
-
-                if (isStructured) {
-                    const displayContent = buildStructuredDisplay(data);
+                if (data.action === "ORDER") {
+                    setConfirmOrder({
+                        itemId: data.itemId,
+                        itemName: data.itemName,
+                        quantity: data.quantity,
+                        price: data.price || 0,
+                        message: data.message
+                    });
+                    setShowConfirm(true);
+                    speak(data.message || `${data.itemName} ka order confirm karein?`);
+                    
                     setMessages(prev => [
                         ...prev,
                         {
                             role: "assistant",
-                            content: displayContent,
+                            content: data.message || "Aapka order ready hai confirm karne ke liye:",
                             timestamp: Date.now(),
-                            structured: data,
                         },
                     ]);
-
-                    if (data.status === "ORDER_PLACED" || data.action === "order_placed") {
-                        toast.success("Order placed! 🎉");
-                        clearCart();
-                    }
                 } else {
-                    // Legacy/chat response
-                    setMessages(prev => [
-                        ...prev,
-                        {
-                            role: "assistant",
-                            content: data.message,
-                            timestamp: Date.now(),
-                        },
-                    ]);
+                    // Determine if this is a structured response
+                    const isStructured = data.status && ["ORDER_CONFIRMED", "ITEM_NOT_FOUND", "STOCK_ERROR", "ORDER_PLACED", "ORDER_FAILED", "CHAT_MODE"].includes(data.status);
 
-                    if (data.action === "order_placed") {
-                        toast.success("Order placed via AI! 🎉");
-                        clearCart();
+                    if (isStructured) {
+                        const displayContent = buildStructuredDisplay(data);
+                        
+                        // Voice out the response
+                        let speakText = data.message || displayContent;
+                        // Simplify order summary for speech
+                        if (data.status === "ORDER_CONFIRMED") {
+                            speakText = `Aapka order summary: Total amount ${data.grand_total} rupees. Kya main order confirm karu?`;
+                        }
+                        speak(speakText);
+
+                        setMessages(prev => [
+                            ...prev,
+                            {
+                                role: "assistant",
+                                content: displayContent,
+                                timestamp: Date.now(),
+                                structured: data,
+                            },
+                        ]);
+
+                        if (data.status === "ORDER_PLACED" || data.action === "order_placed") {
+                            toast.success("Order placed! 🎉");
+                            clearCart();
+                        }
+                    } else {
+                        // Legacy/chat response
+                        speak(data.message);
+                        setMessages(prev => [
+                            ...prev,
+                            {
+                                role: "assistant",
+                                content: data.message,
+                                timestamp: Date.now(),
+                            },
+                        ]);
+
+                        if (data.action === "order_placed") {
+                            toast.success("Order placed via AI! 🎉");
+                            clearCart();
+                        }
                     }
                 }
             } else {
@@ -181,10 +280,11 @@ export default function JarvisChat() {
         } catch (err) {
             console.error("Jarvis Error:", err);
             toast.error("Connection lost");
+            speak("Sorry, network error aa gaya.");
         } finally {
             setProcessing(false);
         }
-    }, [input, processing, messages, items, profile, getIdToken, clearCart]);
+    }, [input, processing, messages, items, profile, getIdToken, clearCart, speak]);
 
     /** Build a human-readable display string from structured JSON */
     function buildStructuredDisplay(data: StructuredResponse): string {
@@ -237,8 +337,8 @@ export default function JarvisChat() {
         [handleSend]
     );
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && !e.shiftKey) {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") {
             e.preventDefault();
             handleSend();
         }
@@ -254,7 +354,7 @@ export default function JarvisChat() {
             {/* ═══ Floating Orb Trigger ═══ */}
             <motion.button
                 onClick={() => setOpen(!open)}
-                className="fixed bottom-24 right-4 z-50 w-16 h-16 rounded-full flex items-center justify-center text-3xl border-2 border-gold-400/30 breathing-orb"
+                className="hidden md:flex fixed bottom-6 right-6 z-50 w-12 h-12 md:w-16 md:h-16 rounded-full items-center justify-center text-xl md:text-3xl border-2 border-gold-400/30 breathing-orb"
                 style={{
                     background: 'radial-gradient(circle at 35% 35%, #fbbf24, #d4a017, #92400e)',
                 }}
@@ -286,23 +386,24 @@ export default function JarvisChat() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 40, scale: 0.85 }}
                         transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                        className="fixed bottom-44 right-4 left-4 sm:left-auto sm:right-6 z-50 sm:w-[380px] h-[550px] max-h-[80vh] flex flex-col rounded-3xl overflow-hidden border border-white/[0.08] shadow-[0_32px_64px_rgba(0,0,0,0.7),_0_0_40px_rgba(251,191,36,0.08)] bg-zayko-900/95 backdrop-blur-2xl"
+                        className="fixed bottom-0 left-0 right-0 h-[70vh] rounded-t-3xl md:h-[550px] md:bottom-28 md:right-32 md:left-auto md:w-[380px] md:rounded-3xl flex flex-col overflow-hidden shadow-2xl backdrop-blur-2xl z-[60]"
+                        style={{ background: "var(--bg-card, rgba(0,0,0,0.8))", border: "1px solid var(--border)" }}
                     >
                         {/* Header */}
-                        <div className="px-6 py-5 border-b border-white/[0.06] bg-gradient-to-r from-gold-400/10 via-gold-400/5 to-transparent flex items-center justify-between">
+                        <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
                             <div className="flex items-center gap-3">
                                 <div className="relative">
-                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-gold-500/30" style={{ background: 'radial-gradient(circle at 35% 35%, #fbbf24, #d4a017)' }}>
-                                        🤖
+                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'var(--btn-primary)' }}>
+                                        <Bot className="w-6 h-6 text-white" />
                                     </div>
-                                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-zayko-900 rounded-full"></span>
+                                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 rounded-full" style={{ borderColor: "var(--bg-elevated)" }}></span>
                                 </div>
                                 <div>
-                                    <h3 className="font-display font-black text-white text-base tracking-tight italic">JARVIS <span className="text-[10px] bg-gold-400/20 text-gold-400 px-1.5 py-0.5 rounded ml-1 not-italic">ENGINE</span></h3>
-                                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest leading-none mt-1">Order Engine Active</p>
+                                    <h3 className="font-display font-black text-base tracking-tight italic" style={{ color: "var(--text-primary)" }}>JARVIS <span className="text-[10px] px-1.5 py-0.5 rounded ml-1 not-italic" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>ENGINE</span></h3>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest leading-none mt-1" style={{ color: "var(--accent)" }}>Order Engine Active</p>
                                 </div>
                             </div>
-                            <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-zayko-400 hover:text-white hover:bg-white/10 transition-all active:scale-90">✕</button>
+                            <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90" style={{ color: "var(--text-secondary)", background: "var(--bg-input)" }}>✕</button>
                         </div>
 
                         {/* Chat Messages */}
@@ -316,16 +417,14 @@ export default function JarvisChat() {
                                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                                 >
                                     <div className="max-w-[85%]">
-                                        <div className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ${msg.role === "user"
-                                            ? "bg-gradient-to-br from-gold-500 to-gold-400 text-zayko-950 font-bold rounded-tr-sm shadow-gold-500/20"
-                                            : msg.structured?.status === "ORDER_CONFIRMED"
-                                                ? "bg-emerald-500/10 border border-emerald-500/30 text-zayko-100 rounded-tl-sm"
-                                                : msg.structured?.status === "ITEM_NOT_FOUND" || msg.structured?.status === "STOCK_ERROR"
-                                                    ? "bg-red-500/10 border border-red-500/30 text-zayko-100 rounded-tl-sm"
-                                                    : msg.structured?.status === "ORDER_PLACED"
-                                                        ? "bg-emerald-500/10 border border-emerald-500/30 text-zayko-100 rounded-tl-sm"
-                                                        : "bg-white/5 border border-white/[0.08] text-zayko-100 rounded-tl-sm"
-                                            }`}>
+                                        <div 
+                                            className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ${msg.role === "user" ? "font-bold rounded-tr-sm" : "rounded-tl-sm"}`} 
+                                            style={
+                                                msg.role === "user" 
+                                                    ? { background: "var(--btn-primary)", color: "#FFF" } 
+                                                    : { background: "var(--bg-elevated)", color: "var(--text-primary)", border: "1px solid var(--border)" }
+                                            }
+                                        >
                                             {msg.content.split("\n").map((line, idx) => (
                                                 <p key={idx} className={idx > 0 ? "mt-1" : ""}>{line}</p>
                                             ))}
@@ -337,26 +436,59 @@ export default function JarvisChat() {
                                                 <button
                                                     onClick={() => handleConfirmOrder(msg.structured!)}
                                                     disabled={processing}
-                                                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-xs font-black uppercase tracking-wider hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all disabled:opacity-50"
+                                                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-xs font-black uppercase tracking-wider hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                                                 >
-                                                    ✅ Confirm Order
+                                                    <Check className="w-4 h-4" strokeWidth={3} /> Confirm Order
                                                 </button>
                                                 <button
                                                     onClick={() =>
                                                         setMessages(prev => [
                                                             ...prev,
-                                                            { role: "assistant", content: "Order cancel kar diya. Kuch aur chahiye? 😊", timestamp: Date.now() },
+                                                            { role: "assistant", content: "Order cancel kar diya. Kuch aur chahiye?", timestamp: Date.now() },
                                                         ])
                                                     }
-                                                    className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-zayko-300 text-xs font-bold uppercase tracking-wider hover:bg-white/10 active:scale-95 transition-all"
+                                                    className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-zayko-300 text-xs font-bold uppercase tracking-wider hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-1.5"
                                                 >
-                                                    ❌ Cancel
+                                                    <X className="w-4 h-4" strokeWidth={3} /> Cancel
                                                 </button>
                                             </div>
                                         )}
                                     </div>
                                 </motion.div>
                             ))}
+
+                            {/* Native LLM Order Confirmation Dialog */}
+                            {showConfirm && confirmOrder && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    className="rounded-2xl p-4 my-2 border border-white/10 bg-zayko-800/80 backdrop-blur-md shadow-xl"
+                                >
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Check className="w-5 h-5 text-emerald-400" />
+                                        <p className="font-display font-bold text-white text-base">Order Confirm Karo</p>
+                                    </div>
+                                    <p className="text-sm mb-4 text-zayko-300 font-medium">
+                                        {confirmOrder.itemName} x{confirmOrder.quantity} — <span className="text-gold-400 font-bold">₹{confirmOrder.price * confirmOrder.quantity}</span>
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleConfirmLLM}
+                                            disabled={processing}
+                                            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-xs font-black uppercase tracking-wider hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all disabled:opacity-50">
+                                            ✅ Haan, Order Karo
+                                        </button>
+                                        <button onClick={() => {
+                                            setShowConfirm(false);
+                                            setMessages(prev => [...prev, { role: "assistant", content: "Order cancel kar diya. Kuch aur chahiye?", timestamp: Date.now() }]);
+                                        }}
+                                            disabled={processing}
+                                            className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-zayko-300 text-xs font-bold uppercase tracking-wider hover:bg-white/10 active:scale-95 transition-all">
+                                            ❌ Nahi, Cancel
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+
                             {processing && (
                                 <div className="flex justify-start">
                                     <div className="bg-white/5 border border-white/[0.08] px-4 py-3 rounded-2xl rounded-tl-sm">
@@ -372,20 +504,57 @@ export default function JarvisChat() {
                         </div>
 
                         {/* Input Area */}
-                        <div className="p-4 bg-zayko-800/50 border-t border-white/[0.06]">
+                        <div className="p-4 bg-zayko-800/50 border-t border-white/[0.06] relative">
+                            {/* Live Transcript Display */}
+                            <AnimatePresence>
+                                {isListening && interimTranscript && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        className="absolute -top-12 left-4 right-4 bg-zayko-950/80 backdrop-blur-md rounded-xl p-3 border border-white/10 shadow-lg text-sm text-gold-200 font-medium z-10 italic"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex gap-1">
+                                                <span className="w-1 h-3 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                                                <span className="w-1 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                                                <span className="w-1 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                                            </div>
+                                            <span className="truncate">{interimTranscript}</span>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                             <div className="relative group flex items-center gap-2">
                                 {/* Mic Button */}
-                                <button
-                                    onClick={toggleVoice}
-                                    className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                                        isListening
-                                            ? "bg-red-500 text-white shadow-lg shadow-red-500/30 animate-pulse"
-                                            : "bg-white/5 border border-white/[0.1] text-zayko-400 hover:text-white hover:bg-white/10"
-                                    }`}
-                                    title={isListening ? "Stop listening" : "Speak your order"}
-                                >
-                                    🎙️
-                                </button>
+                                <div className="relative">
+                                    {isListening && (
+                                        <>
+                                            <span className="absolute inset-0 rounded-xl bg-red-500/40 animate-ping" style={{ animationDuration: '2s' }} />
+                                            <span className="absolute inset-[-4px] rounded-2xl border-2 border-red-500/30 animate-pulse" style={{ animationDuration: '1.5s' }} />
+                                        </>
+                                    )}
+                                    <button
+                                        onClick={toggleVoice}
+                                        className={`relative z-10 flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-md ${
+                                            isListening
+                                                ? "bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-500/50"
+                                                : "bg-white/5 border border-white/[0.1] text-zayko-400 hover:text-white hover:bg-white/10"
+                                        }`}
+                                        title={isListening ? "Stop listening" : "Speak your order"}
+                                    >
+                                        {isListening ? (
+                                            <motion.div
+                                                animate={{ scale: [1, 1.2, 1] }}
+                                                transition={{ repeat: Infinity, duration: 1.5 }}
+                                            >
+                                                <Mic className="w-5 h-5 text-white" />
+                                            </motion.div>
+                                        ) : <Mic className="w-5 h-5 text-current" />}
+                                    </button>
+                                </div>
+
                                 <div className="relative flex-1">
                                     <input
                                         ref={inputRef}
@@ -393,7 +562,7 @@ export default function JarvisChat() {
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder={isListening ? "Listening..." : "Type or tap 🎙️ to speak..."}
+                                        placeholder={isListening ? "Listening..." : "Type or tap mic to speak..."}
                                         className="w-full bg-white/5 border border-white/[0.1] rounded-2xl py-4 pl-5 pr-14 text-white text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/30 focus:border-gold-400/20 focus:shadow-[0_0_20px_rgba(251,191,36,0.1)] transition-all placeholder:text-zayko-600 font-medium"
                                         disabled={processing || isListening}
                                     />

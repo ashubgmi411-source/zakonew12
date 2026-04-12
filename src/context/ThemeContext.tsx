@@ -21,7 +21,7 @@ import React, {
 } from "react";
 
 // ── Theme types ──────────────────────────────────────────
-export type Theme = "dark" | "light" | "midnight" | "cyberpunk" | "minimal" | "canteen";
+export type Theme = "midnight" | "light" | "ember" | "ocean" | "forest";
 
 export interface ThemeConfig {
   id: Theme;
@@ -38,46 +38,39 @@ export interface ThemeConfig {
 
 export const THEMES: ThemeConfig[] = [
   {
-    id: "dark",
-    name: "Dark",
+    id: "midnight",
+    name: "Midnight",
     icon: "🌙",
     description: "Premium dark interface",
-    colors: { primary: "#0B1220", secondary: "#101c2e", accent: "#fbbf24", card: "#162342" },
+    colors: { primary: "#0A0A0F", secondary: "#13131A", accent: "#6C63FF", card: "#1C1C27" },
   },
   {
     id: "light",
     name: "Light",
     icon: "☀️",
     description: "Clean & bright",
-    colors: { primary: "#f8fafc", secondary: "#ffffff", accent: "#2563eb", card: "#ffffff" },
+    colors: { primary: "#F8F7F4", secondary: "#FFFFFF", accent: "#FF6B35", card: "#F0EEE9" },
   },
   {
-    id: "midnight",
-    name: "Midnight",
-    icon: "🔮",
-    description: "Deep indigo cosmos",
-    colors: { primary: "#0c0a1d", secondary: "#13102a", accent: "#a78bfa", card: "#1a1640" },
+    id: "ember",
+    name: "Ember",
+    icon: "🔥",
+    description: "Bold & energetic",
+    colors: { primary: "#0F0A08", secondary: "#1A1008", accent: "#FF4500", card: "#261808" },
   },
   {
-    id: "cyberpunk",
-    name: "Cyberpunk",
-    icon: "⚡",
-    description: "Neon-lit future",
-    colors: { primary: "#0a0a0a", secondary: "#111111", accent: "#00ff88", card: "#161616" },
+    id: "ocean",
+    name: "Ocean",
+    icon: "🌊",
+    description: "Cool & modern",
+    colors: { primary: "#060D1F", secondary: "#0D1829", accent: "#00D4FF", card: "#142035" },
   },
   {
-    id: "minimal",
-    name: "Minimal",
-    icon: "✨",
-    description: "Soft & distraction-free",
-    colors: { primary: "#fafaf9", secondary: "#ffffff", accent: "#1c1917", card: "#ffffff" },
-  },
-  {
-    id: "canteen",
-    name: "Canteen",
-    icon: "🍕",
-    description: "Warm food-inspired",
-    colors: { primary: "#1a0f07", secondary: "#241508", accent: "#ea580c", card: "#2a1c0e" },
+    id: "forest",
+    name: "Forest",
+    icon: "🌿",
+    description: "Organic & premium",
+    colors: { primary: "#080F0A", secondary: "#0F1A10", accent: "#1DB954", card: "#162318" },
   },
 ];
 
@@ -95,19 +88,19 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
-const STORAGE_KEY = "zayko-user-theme";
+const STORAGE_KEY = "zayko-theme";
 const AUTO_THEME_KEY = "zayko-auto-theme";
 
 // ── Helper: get theme from time of day ───────────────────
 function getTimeBasedTheme(): Theme {
   const hour = new Date().getHours();
   if (hour >= 6 && hour < 19) return "light";
-  return "dark";
+  return "midnight";
 }
 
 // ── Provider ─────────────────────────────────────────────
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>("midnight");
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [autoTheme, setAutoThemeState] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -190,11 +183,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <ThemeContext.Provider value={value}>
       <div
-        data-theme={mounted ? theme : "dark"}
-        className={`min-h-screen ${mounted ? "theme-transition" : ""} ${theme === "cyberpunk" && mounted ? "cyberpunk-scanline" : ""}`}
+        data-theme={mounted ? theme : "midnight"}
+        className="min-h-screen transition-colors duration-300"
         style={{
-          backgroundColor: mounted ? "var(--theme-bg-primary)" : "#0B1220",
-          color: mounted ? "var(--theme-text-primary)" : "#f1f5f9",
+          background: "var(--bg-primary, #0A0A0F)",
+          color: "var(--text-primary, #E8E8F0)",
         }}
       >
         {children}

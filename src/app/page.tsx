@@ -1,15 +1,22 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { collection, doc, onSnapshot, query, orderBy } from "firebase/firestore";
 import MenuCard from "@/components/MenuCard";
+import TrendingCarousel from "@/components/TrendingCarousel";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import JarvisChat from "@/components/JarvisChat";
 import ScheduledOrderModal from "@/components/ScheduledOrderModal";
+import { Search, Wallet, Utensils, X, Salad } from "lucide-react";
+import { 
+  GiPizzaSlice, GiHamburger, GiCoffeeCup, GiMeal, 
+  GiSandwich, GiCupcake, GiTacos, GiNoodles, GiIceCreamCone, 
+  GiTeapot, GiWaterBottle, GiFrenchFries, GiDumpling, GiBread
+} from "react-icons/gi";
 
 import { MenuItem, CategoryDoc } from "@/types";
 
@@ -21,7 +28,7 @@ interface CanteenConfig {
 
 export default function MenuPage() {
   const { user, profile, loading } = useAuth();
-  const { itemCount, total } = useCart();
+  const { itemCount, total, setIsCartOpen } = useCart();
   const router = useRouter();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [search, setSearch] = useState("");
@@ -32,7 +39,6 @@ export default function MenuPage() {
   const [categories, setCategories] = useState<CategoryDoc[]>([]);
   const [cartPulse, setCartPulse] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const trendingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -203,7 +209,7 @@ export default function MenuPage() {
                   href="/wallet"
                   className="flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] hover:border-gold-400/20 hover:shadow-[0_0_20px_rgba(251,191,36,0.08)] transition-all duration-300 backdrop-blur-xl"
                 >
-                  <span className="text-sm">💰</span>
+                  <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-gold-400 group-hover:scale-110 transition-transform duration-200" />
                   <span className="price-premium text-sm sm:text-base">₹{profile.walletBalance || 0}</span>
                 </Link>
               </motion.div>
@@ -224,7 +230,7 @@ export default function MenuPage() {
         <div className="px-4 sm:px-6 max-w-7xl mx-auto py-3 space-y-3">
           {/* Search Input */}
           <div className="relative group">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zayko-400 text-sm group-focus-within:text-gold-400 transition-colors duration-200">🔍</span>
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zayko-400 w-4 h-4 group-focus-within:text-gold-400 transition-colors duration-200" />
             <input
               type="text"
               placeholder="Search menu..."
@@ -241,63 +247,67 @@ export default function MenuPage() {
                   onClick={() => setSearch("")}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zayko-400 hover:text-white transition-colors p-0.5"
                 >
-                  <div className="bg-white/10 hover:bg-white/20 rounded-full w-5 h-5 flex items-center justify-center text-[10px] transition-colors">✕</div>
+                  <div className="bg-white/10 hover:bg-white/20 rounded-full w-5 h-5 flex items-center justify-center transition-colors">
+                    <X className="w-3 h-3" />
+                  </div>
                 </motion.button>
               )}
             </AnimatePresence>
           </div>
 
           {/* Category Cards — Premium Icon Grid */}
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+          <div className="flex gap-2 overflow-x-auto md:flex-wrap scrollbar-hide pb-2 md:pb-0 -mx-1 px-1">
             {/* "All" card */}
             <motion.button
               onClick={() => setCategory("all")}
               whileTap={{ scale: 0.92 }}
               whileHover={{ scale: 1.04, y: -2 }}
-              className={`flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-300 shrink-0 min-w-[72px] border ${
+              className={`flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-300 shrink-0 min-w-[72px] border ${
                 category === "all"
                   ? "bg-gradient-to-br from-gold-400 to-gold-500 text-zayko-900 border-gold-400/40 shadow-[0_4px_20px_rgba(251,191,36,0.35)]"
                   : "bg-white/[0.04] text-zayko-300 border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]"
               }`}
             >
-              <span className="text-lg">🍽️</span>
+              <div className={`p-1.5 rounded-full ${category === "all" ? "bg-white/20" : "bg-white/5"}`}>
+                <Utensils className="w-5 h-5" />
+              </div>
               <span>All</span>
             </motion.button>
             {categories.map((cat) => {
-              const icons: Record<string, string> = {
+              const icons: Record<string, React.JSX.Element> = {
                 // Core meals
-                breakfast: "🍳", lunch: "🍽️", dinner: "🌙",
-                "indian-meals": "🍛", thali: "🍱", biryani: "🍚",
+                breakfast: <GiBread />, lunch: <GiMeal />, dinner: <GiMeal />,
+                "indian-meals": <GiMeal />, thali: <GiMeal />, biryani: <GiMeal />,
                 // Fast food / street
-                "fast-food": "🍟", "street-food": "🌮", snack: "🍿", snacks: "🧁",
+                "fast-food": <GiFrenchFries />, "street-food": <GiTacos />, snack: <GiFrenchFries />, snacks: <GiCupcake />,
                 // Specific cuisines
-                "chinese-food": "🥡", chinese: "🥡", "south-indian": "🥞",
-                "south-indians": "🥞", "north-indian": "🍛",
+                "chinese-food": <GiNoodles />, chinese: <GiNoodles />, "south-indian": <GiBread />,
+                "south-indians": <GiBread />, "north-indian": <GiMeal />,
                 // Popular items
-                pizza: "🍕", burgers: "🍔", burger: "🍔",
-                sandwiches: "🥪", sandwich: "🥪",
-                "rolls-wraps": "🌯", rolls: "🌯", wraps: "🌯",
-                "noodles-pasta": "🍝", noodles: "🍜", pasta: "🍝",
-                momos: "🥟", chaat: "🫕",
+                pizza: <GiPizzaSlice />, burgers: <GiHamburger />, burger: <GiHamburger />,
+                sandwiches: <GiSandwich />, sandwich: <GiSandwich />,
+                "rolls-wraps": <GiTacos />, rolls: <GiTacos />, wraps: <GiTacos />,
+                "noodles-pasta": <GiNoodles />, noodles: <GiNoodles />, pasta: <GiNoodles />,
+                momos: <GiDumpling />, chaat: <GiMeal />,
                 // Parathas & bread
-                parathas: "🫓", paratha: "🫓", roti: "🫓", bread: "🍞",
+                parathas: <GiBread />, paratha: <GiBread />, roti: <GiBread />, bread: <GiBread />,
                 // Healthy
-                "healthy-food": "🥗", healthy: "🥗", salad: "🥗",
+                "healthy-food": <Salad />, healthy: <Salad />, salad: <Salad />,
                 // Drinks
-                beverages: "🥤", beverage: "🥤",
-                "tea-coffee": "☕", "tea-&-coffee": "☕", tea: "🍵", coffee: "☕",
-                "fresh-juices": "🧃", "fresh-juice": "🧃", juice: "🧃", juices: "🧃",
-                smoothie: "🥤", shake: "🥛", lassi: "🥛",
+                beverages: <GiWaterBottle />, beverage: <GiWaterBottle />,
+                "tea-coffee": <GiCoffeeCup />, "tea-&-coffee": <GiCoffeeCup />, tea: <GiTeapot />, coffee: <GiCoffeeCup />,
+                "fresh-juices": <GiWaterBottle />, "fresh-juice": <GiWaterBottle />, juice: <GiWaterBottle />, juices: <GiWaterBottle />,
+                smoothie: <GiWaterBottle />, shake: <GiWaterBottle />, lassi: <GiWaterBottle />,
                 // Frozen / Ice cream
-                "ice-cream": "🍦", icecream: "🍦", "ice-creams": "🍦",
+                "ice-cream": <GiIceCreamCone />, icecream: <GiIceCreamCone />, "ice-creams": <GiIceCreamCone />,
                 // Sweets / Desserts
-                desserts: "🍰", dessert: "🍰", sweets: "🍬", mithai: "🍬",
+                desserts: <GiCupcake />, dessert: <GiCupcake />, sweets: <GiCupcake />, mithai: <GiCupcake />,
                 // Combos
-                combo: "🎁", combos: "🎁", "meal-combo": "🎁",
+                combo: <GiMeal />, combos: <GiMeal />, "meal-combo": <GiMeal />,
                 // Extras
-                extras: "🧂", sides: "🥙", dips: "🫙",
+                extras: <GiMeal />, sides: <Salad />, dips: <GiMeal />,
                 // Fallback
-                default: "🍴",
+                default: <Utensils />,
               };
               const icon = icons[cat.slug] || icons["default"];
               const isActive = category === cat.slug;
@@ -307,13 +317,15 @@ export default function MenuPage() {
                   onClick={() => setCategory(cat.slug)}
                   whileTap={{ scale: 0.92 }}
                   whileHover={{ scale: 1.04, y: -2 }}
-                  className={`flex flex-col items-center gap-1 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-300 shrink-0 min-w-[72px] border ${
+                  className={`flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-300 shrink-0 min-w-[72px] border ${
                     isActive
                       ? "bg-gradient-to-br from-gold-400 to-gold-500 text-zayko-900 border-gold-400/40 shadow-[0_4px_20px_rgba(251,191,36,0.35)]"
                       : "bg-white/[0.04] text-zayko-300 border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]"
                   }`}
                 >
-                  <span className="text-lg">{icon}</span>
+                  <div className={`p-1.5 rounded-full ${isActive ? "bg-white/20" : "bg-white/5"}`}>
+                    {React.cloneElement(icon, { className: "w-5 h-5" })}
+                  </div>
                   <span>{cat.name}</span>
                 </motion.button>
               );
@@ -349,7 +361,7 @@ export default function MenuPage() {
       </div>
 
       {/* ══════════════════════════════════════
-          TRENDING NOW — Animated Carousel
+          TRENDING NOW — Animated Carousel (One at a time)
          ══════════════════════════════════════ */}
       {availableItems.length > 0 && !search && category === "all" && (
         <motion.section
@@ -375,25 +387,7 @@ export default function MenuPage() {
             </motion.span>
           </div>
 
-          {/* Carousel */}
-          <div ref={trendingRef} className="relative">
-            <div className="flex overflow-x-auto no-scrollbar gap-4 px-4 sm:px-6 pb-4 snap-x snap-mandatory">
-              {availableItems.slice(0, 6).map((item, idx) => (
-                <motion.div
-                  key={`trending-${item.id}`}
-                  className="min-w-[160px] max-w-[45vw] sm:min-w-[220px] sm:max-w-[240px] shrink-0 snap-start carousel-glow-item"
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <MenuCard {...item} />
-                </motion.div>
-              ))}
-            </div>
-            {/* Edge fade gradients */}
-            <div className="absolute top-0 left-0 w-8 h-full bg-gradient-to-r from-zayko-900 to-transparent pointer-events-none z-10" />
-            <div className="absolute top-0 right-0 w-8 h-full bg-gradient-to-l from-zayko-900 to-transparent pointer-events-none z-10" />
-          </div>
+          <TrendingCarousel items={availableItems} />
         </motion.section>
       )}
 
@@ -403,7 +397,7 @@ export default function MenuPage() {
       <div className="px-4 sm:px-6 max-w-7xl mx-auto mt-5 sm:mt-6 space-y-8 sm:space-y-10 relative z-10">
         {menuLoading ? (
           /* Premium Loading Skeleton */
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="rounded-2xl overflow-hidden">
                 <div className="skeleton-premium aspect-[4/3]" />
@@ -435,49 +429,66 @@ export default function MenuPage() {
               <section>
                 <motion.div
                   className="flex items-center gap-3 mb-5"
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
                 >
                   <div className="w-1 h-7 bg-gradient-to-b from-emerald-400 to-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]" />
                   <h2 className="text-lg sm:text-xl font-display font-bold text-white">Available Now</h2>
                   <span className="text-[10px] sm:text-xs text-emerald-400/70 bg-emerald-400/10 px-2 py-0.5 rounded-full font-semibold">{availableItems.length}</span>
                 </motion.div>
-                <motion.div
-                  className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="show"
-                >
-                  {availableItems.map((item) => (
-                    <motion.div key={item.id} variants={itemVariants}>
-                      <MenuCard {...item} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+                  {availableItems.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 40 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      transition={{
+                        duration: 0.5,
+                        ease: "easeOut",
+                        delay: Math.min(index * 0.08, 0.4) // cap delay
+                      }}
+                    >
+                      <MenuCard {...item} index={index} />
                     </motion.div>
                   ))}
-                </motion.div>
+                </div>
               </section>
             )}
 
             {/* ── Unavailable Section ── */}
             {showUnavailable && unavailableItems.length > 0 && (
               <section>
-                <div className="flex items-center gap-3 mb-5 pt-4 sm:pt-6 border-t border-white/[0.04]">
+                <motion.div
+                  className="flex items-center gap-3 mb-5 pt-4 sm:pt-6 border-t border-white/[0.04]"
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                >
                   <div className="w-1 h-7 bg-zayko-600 rounded-full" />
                   <h2 className="text-lg sm:text-xl font-display font-bold text-zayko-300">Not Available</h2>
                   <span className="text-[10px] sm:text-xs text-zayko-500 bg-white/[0.04] px-2 py-0.5 rounded-full font-semibold">{unavailableItems.length}</span>
-                </div>
-                <motion.div
-                  className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5"
-                  variants={containerVariants}
-                  initial="hidden"
-                  animate="show"
-                >
-                  {unavailableItems.map((item) => (
-                    <motion.div key={item.id} variants={itemVariants}>
-                      <MenuCard {...item} />
+                </motion.div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+                  {unavailableItems.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 40 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-50px" }}
+                      transition={{
+                        duration: 0.5,
+                        ease: "easeOut",
+                        delay: Math.min(index * 0.08, 0.4) // cap delay
+                      }}
+                    >
+                      <MenuCard {...item} index={availableItems.length + index} />
                     </motion.div>
                   ))}
-                </motion.div>
+                </div>
               </section>
             )}
 
@@ -494,52 +505,7 @@ export default function MenuPage() {
         )}
       </div>
 
-      {/* ══════════════════════════════════════
-          FLOATING CART BAR — Premium
-         ══════════════════════════════════════ */}
-      <AnimatePresence>
-        {itemCount > 0 && (
-          <motion.div
-            initial={{ y: 80, opacity: 0, scale: 0.9 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 80, opacity: 0, scale: 0.9 }}
-            transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className={`fixed bottom-20 md:bottom-4 left-3 right-3 sm:left-auto sm:right-6 sm:w-auto z-40 ${cartPulse ? 'neon-pulse' : ''}`}
-          >
-            <div className="flex gap-2">
-              {/* Schedule Button */}
-              <button
-                onClick={() => setShowScheduleModal(true)}
-                className="flex items-center gap-2 bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] text-white px-3.5 sm:px-4 py-3.5 sm:py-4 rounded-2xl hover:bg-white/[0.14] hover:border-gold-400/30 hover:shadow-[0_0_20px_rgba(251,191,36,0.12)] transition-all duration-300 active:scale-[0.97] group"
-              >
-                <span className="text-base sm:text-lg">🗓️</span>
-                <span className="text-[10px] sm:text-xs font-bold text-zayko-300 group-hover:text-gold-400 transition-colors hidden sm:inline">Schedule</span>
-              </button>
 
-              {/* Cart Button */}
-              <Link
-                href="/cart"
-                className="flex-1 flex items-center justify-between gap-4 sm:gap-6 bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 text-zayko-900 px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl shadow-[0_8px_32px_rgba(251,191,36,0.35)] hover:shadow-[0_16px_48px_rgba(251,191,36,0.5)] transition-all duration-300 active:scale-[0.97] group"
-              >
-                <div className="flex items-center gap-3">
-                  <motion.span
-                    className="bg-zayko-900/20 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-base sm:text-lg"
-                    animate={cartPulse ? { rotate: [0, -10, 10, -5, 5, 0] } : {}}
-                    transition={{ duration: 0.4 }}
-                  >
-                    🛒
-                  </motion.span>
-                  <div>
-                    <p className="font-bold text-sm sm:text-base">{itemCount} item{itemCount > 1 ? "s" : ""}</p>
-                    <p className="text-[10px] sm:text-xs text-zayko-900/60 group-hover:text-zayko-900/80 transition-colors">Tap to checkout →</p>
-                  </div>
-                </div>
-                <span className="font-display font-bold text-lg sm:text-xl">₹{total}</span>
-              </Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Scheduled Order Modal */}
       <ScheduledOrderModal

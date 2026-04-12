@@ -2,12 +2,16 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 
-// ── Types ──
+interface UseVoiceAssistantProps {
+    onFinalTranscript?: (text: string) => void;
+}
+
 interface UseVoiceAssistantReturn {
     isListening: boolean;
     isSpeaking: boolean;
     isProcessing: boolean;
     transcript: string;
+    interimTranscript: string;
     lastResponse: string;
     startListening: () => void;
     stopListening: () => void;
@@ -56,11 +60,12 @@ function getFemaleVoice(): SpeechSynthesisVoice | null {
 }
 
 // ── Hook ──
-export function useVoiceAssistant(): UseVoiceAssistantReturn {
+export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps = {}): UseVoiceAssistantReturn {
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
     const [transcript, setTranscript] = useState("");
+    const [interimTranscript, setInterimTranscript] = useState("");
     const [lastResponse, setLastResponse] = useState("");
 
     const recognitionRef = useRef<any>(null);
@@ -78,14 +83,34 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
 
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.interimResults = true; // Enable interim results
         recognition.lang = "hi-IN"; // Hindi + English (Hinglish)
         recognition.maxAlternatives = 1;
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
-            const text = event.results[0]?.[0]?.transcript || "";
-            setTranscript(text);
-            setIsListening(false);
+            let finalStr = "";
+            let interimStr = "";
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalStr += event.results[i][0].transcript;
+                } else {
+                    interimStr += event.results[i][0].transcript;
+                }
+            }
+
+            if (interimStr) {
+                setInterimTranscript(interimStr);
+            }
+
+            if (finalStr) {
+                setTranscript(finalStr);
+                setInterimTranscript("");
+                setIsListening(false);
+                if (onFinalTranscript) {
+                    onFinalTranscript(finalStr);
+                }
+            }
         };
 
         recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -124,6 +149,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         }
 
         setTranscript("");
+        setInterimTranscript("");
         setIsListening(true);
         try {
             recognitionRef.current.start();
@@ -141,16 +167,67 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         setIsListening(false);
     }, []);
 
-    // ── Speak using authentic Indian Browser TTS ──
+    // ── Speak using Polly (API) or Browser TTS fallback ──
     const speak = useCallback(async (text: string) => {
         if (!text) return;
 
         setIsSpeaking(true);
         setLastResponse(text);
+        window.speechSynthesis?.cancel();
+        
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current = null;
+        }
 
+        const provider = process.env.NEXT_PUBLIC_TTS_PROVIDER || "browser";
+
+        if (provider !== "browser") {
+            try {
+                // Try Polly/API first
+                const res = await fetch("/api/tts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text })
+                });
+
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const audio = new Audio(url);
+                    audioRef.current = audio;
+                    
+                    audio.onended = () => {
+                        setIsSpeaking(false);
+                        URL.revokeObjectURL(url);
+                        audioRef.current = null;
+                    };
+                    
+                    audio.onerror = () => {
+                        console.error("Audio playback error");
+                        setIsSpeaking(false);
+                        URL.revokeObjectURL(url);
+                        audioRef.current = null;
+                        fallbackSpeak(text); // Fallback to browser if play fails
+                    };
+
+                    await audio.play();
+                    return;
+                } else {
+                    console.warn("TTS API failed, falling back to browser");
+                }
+            } catch (err) {
+                console.error("TTS API error:", err);
+            }
+        }
+
+        // Fallback to Browser SpeechSynthesis
+        fallbackSpeak(text);
+    }, []);
+
+    const fallbackSpeak = (text: string) => {
         // Native Browser SpeechSynthesis (Authentic Indian Accent)
         if (window.speechSynthesis) {
-            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = 1.0;
             utterance.pitch = 1.1;
@@ -171,7 +248,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         } else {
             setIsSpeaking(false);
         }
-    }, []);
+    };
 
     // ── Cancel speech ──
     const cancelSpeech = useCallback(() => {
@@ -188,6 +265,7 @@ export function useVoiceAssistant(): UseVoiceAssistantReturn {
         isSpeaking,
         isProcessing,
         transcript,
+        interimTranscript,
         lastResponse,
         startListening,
         stopListening,

@@ -1419,6 +1419,44 @@ body {
   opacity: 1;
 }
 
+/* ── Trending Carousel Container ── */
+.trending-carousel-container {
+  background: rgba(10, 22, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.trending-carousel-image {
+  transition: transform 8s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.trending-carousel-container:hover .trending-carousel-image {
+  transform: scale(1.06);
+}
+
+/* ── Menu Card Image Fade-In (prevents flash) ── */
+@keyframes menuImageFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.menu-card-image-fade {
+  animation: menuImageFadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity, transform;
+}
+
 /* ── Loading Skeleton ── */
 @keyframes skeletonShimmer {
   0% {

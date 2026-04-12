@@ -14,67 +14,69 @@ export async function register() {
     if (process.env.NEXT_RUNTIME === "nodejs") {
         const cron = await import("node-cron");
 
-        // ── Scheduled Orders: Execute every minute (DIRECT — no HTTP) ──
-        cron.default.schedule("* * * * *", async () => {
-            try {
-                const { executeScheduledOrders } = await import(
-                    "@/services/scheduledOrderExecutor"
-                );
-                const result = await executeScheduledOrders();
-                if (result.processed > 0) {
-                    console.log(
-                        `[Cron] Scheduled orders: ${result.processed} processed, results:`,
-                        result.results
+        if (process.env.NODE_ENV === 'production') {
+            // ── Scheduled Orders: Execute every minute (DIRECT — no HTTP) ──
+            cron.default.schedule("* * * * *", async () => {
+                try {
+                    const { executeScheduledOrders } = await import(
+                        "@/services/scheduledOrderExecutor"
                     );
+                    const result = await executeScheduledOrders();
+                    if (result.processed > 0) {
+                        console.log(
+                            `[Cron] Scheduled orders: ${result.processed} processed, results:`,
+                            result.results
+                        );
+                    }
+                } catch (err) {
+                    console.error("[Cron] Scheduled order execution failed:", err);
                 }
-            } catch (err) {
-                console.error("[Cron] Scheduled order execution failed:", err);
-            }
-        });
+            });
 
-        // For HTTP-based crons, use internal localhost
-        const PORT = process.env.PORT || 3000;
-        const BASE_URL = `http://localhost:${PORT}`;
-        const CRON_SECRET = process.env.CRON_SECRET || "";
+            // For HTTP-based crons, use internal localhost
+            const PORT = process.env.PORT || 3000;
+            const BASE_URL = `http://localhost:${PORT}`;
+            const CRON_SECRET = process.env.CRON_SECRET || "";
 
-        // ── Auto Orders: Execute daily at midnight ──────────────
-        cron.default.schedule("0 0 * * *", async () => {
-            try {
-                const res = await fetch(`${BASE_URL}/api/auto-orders/execute`, {
-                    headers: CRON_SECRET ? { "x-cron-secret": CRON_SECRET } : {},
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    console.log("[Cron] Auto orders:", data);
-                } else {
-                    console.error(`[Cron] Auto orders failed (HTTP ${res.status})`);
+            // ── Auto Orders: Execute daily at midnight ──────────────
+            cron.default.schedule("0 0 * * *", async () => {
+                try {
+                    const res = await fetch(`${BASE_URL}/api/auto-orders/execute`, {
+                        headers: CRON_SECRET ? { "x-cron-secret": CRON_SECRET } : {},
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        console.log("[Cron] Auto orders:", data);
+                    } else {
+                        console.error(`[Cron] Auto orders failed (HTTP ${res.status})`);
+                    }
+                } catch (err) {
+                    console.error("[Cron] Auto order execution failed:", err);
                 }
-            } catch (err) {
-                console.error("[Cron] Auto order execution failed:", err);
-            }
-        });
+            });
 
-        // ── AI Cooking Plan: Execute daily at 2:00 AM ───────────
-        cron.default.schedule("0 2 * * *", async () => {
-            try {
-                const res = await fetch(`${BASE_URL}/api/ai/cooking-plan`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...(CRON_SECRET ? { "x-cron-secret": CRON_SECRET } : {}),
-                    },
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    console.log("[Cron] AI Cooking Plan:", data.success ? "✅ Success" : "❌ Failed");
-                } else {
-                    console.error(`[Cron] AI Cooking Plan failed (HTTP ${res.status})`);
+            // ── AI Cooking Plan: Execute daily at 2:00 AM ───────────
+            cron.default.schedule("0 2 * * *", async () => {
+                try {
+                    const res = await fetch(`${BASE_URL}/api/ai/cooking-plan`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            ...(CRON_SECRET ? { "x-cron-secret": CRON_SECRET } : {}),
+                        },
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        console.log("[Cron] AI Cooking Plan:", data.success ? "✅ Success" : "❌ Failed");
+                    } else {
+                        console.error(`[Cron] AI Cooking Plan failed (HTTP ${res.status})`);
+                    }
+                } catch (err) {
+                    console.error("[Cron] AI Cooking Plan execution failed:", err);
                 }
-            } catch (err) {
-                console.error("[Cron] AI Cooking Plan execution failed:", err);
-            }
-        });
+            });
 
-        console.log("[Cron] ✅ Scheduled order cron (every min, direct) + Auto order cron (daily) + AI Plan cron (2AM) started");
+            console.log("[Cron] ✅ Scheduled order cron (every min, direct) + Auto order cron (daily) + AI Plan cron (2AM) started");
+        }
     }
 }

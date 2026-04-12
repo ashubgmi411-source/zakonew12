@@ -15,8 +15,9 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { adminDb } from "@/lib/firebase-admin";
 import { generateOrderId } from "@/lib/orderIdUtils";
 import { FieldValue } from "firebase-admin/firestore";
-import { detectOrderIntent, processOrder, MenuItemForEngine } from "@/lib/order-engine";
+import { MenuItemForEngine } from "@/lib/order-engine";
 import { deductInventoryForOrder } from "@/services/inventoryService";
+import { matchFaq } from "@/lib/faq";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
     if (!uid) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
 
     try {
         const { messages, cart, userProfile, action } = await req.json();
@@ -65,192 +67,68 @@ export async function POST(req: NextRequest) {
             ? `\n\nCANTEEN STATUS: OPEN (Timing: ${canteenTiming})`
             : `\n\nCANTEEN STATUS: CLOSED (Timing: ${canteenTiming})\nIMPORTANT: Canteen is currently closed. Do NOT suggest any food items. Respond to any food/order request with: "Canteen abhi band hai 😔 Timing: ${canteenTiming}"`;
 
-        let systemPrompt = `You are the official AI Assistant of Zayko – a Smart Food Ordering Platform.
+        // Fetch live menu unconditionally for context injection
+        let menuItemsJSON = "[]";
+        try {
+            const menuSnap = await adminDb.collection("menuItems").where("available", "==", true).get();
+            const liveMenu = menuSnap.docs.map((doc) => ({
+                id: doc.id,
+                name: doc.data().name || "",
+                price: doc.data().price || 0,
+                // Avoid injecting huge amounts of redundant data to keep prompt small
+            }));
+            menuItemsJSON = JSON.stringify(liveMenu);
+        } catch (e) {
+            console.error("Menu fetch error for JARVIS prompt:", e);
+            menuItemsJSON = "Failed to load live menu. Apologize to the user.";
+        }
 
-Your job is ONLY to assist users with canteen-related tasks.
+        let systemPrompt = `You are Jarvis, the AI assistant for Zayko — an AI-powered canteen management system. You are smart, friendly, and helpful.
 
-------------------------------------------
-LANGUAGE RULES
-------------------------------------------
+AVAILABLE MENU (fetched fresh from database):
+${menuItemsJSON}
 
-- Default language: Hinglish (friendly tone).
-- Start conversations in Hinglish.
-- If user switches to full English, reply in English.
-- Keep tone friendly, short, helpful.
-- Use light emojis (not too many).
-- Address user RESPECTFULLY based on their gender:
-  - If gender = male: address as "Sir [Name]" (e.g., "Sir Ravi")
-  - If gender = female: address as "Ma'am [Name]" (e.g., "Ma'am Anjali")
-  - If gender is not available: use just [Name] (e.g., "Hello Ravi")
-- The honorific to use is provided in CURRENT USER INFO section.
+YOUR CAPABILITIES:
+1. Take food orders in Hindi, English, or Hinglish
+2. Answer menu/price questions  
+3. Check order status
+4. Give food recommendations
 
-------------------------------------------
-STRICTLY BANNED WORDS
-------------------------------------------
+LANGUAGE RULE: Always reply in the same language the user used.
+You understand and respond to:
+- Pure Hindi: 'एक आलू परांठा दो'
+- Hinglish: 'yaar ek aloo paratha de do bhai'  
+- English: 'order one aloo paratha'
+- Mixed: 'mujhe 2 burger chahiye with extra cheese'
 
-- NEVER use: bhai, bro, dude, yaar, boss, buddy, mate
-- ALWAYS maintain a professional and polite tone
-- Use Sir/Ma'am as specified above
+Common Hindi order phrases to detect:
+- 'de do / dena / chahiye / lena hai / la do / order karo' → means: user wants to ORDER
+- 'kya hai / menu dikhao / kya milta hai / abhi kya ban raha hai' → means: user wants MENU
+- 'kitna / price / daam / kitne ka / sasta kya hai' → means: user wants PRICE INFO
+- 'cancel / nahi chahiye / rehne do' → means: CANCEL order
 
-------------------------------------------
-STRICT DOMAIN RULE
-------------------------------------------
+RESPONSE FORMAT — Always respond with valid JSON only:
+{
+  "action": "ORDER" | "CHAT" | "MENU" | "STATUS",
+  "itemId": "firestore_id (only for ORDER)",
+  "itemName": "item name (only for ORDER)", 
+  "quantity": 1,
+  "price": 0,
+  "message": "Your conversational reply here"
+}
 
-You are ONLY allowed to talk about:
-- Menu items
-- Availability
-- Prices
-- Preparation time
-- Cart
-- Orders
-- Wallet
-- Transfers
-- Canteen timings
-- Tracking orders
-- Modifying profile name
+MATCHING RULES:
+- Match item names fuzzily (burgar = burger, paratha = aloo paratha, Hindi names: आलू परांठा = aloo paratha)
+- Extract quantity from text (do = 2, ek = 1, teen = 3, एक = 1, दो = 2)
+- If unclear which item, ask for clarification
+- Never make up items not in the menu list
 
-If user asks anything unrelated to canteen:
-- Politely say: "Main sirf canteen related help kar sakta hoon 😊"
-If user repeats off-topic request multiple times:
-- Respond strictly:
-  "Ye platform sirf canteen services ke liye hai. Kripya canteen related hi baat karein."
+NATURAL LANGUAGE EXAMPLES:
+- User: "yaar bhookh lagi hai kuch do" -> You respond with CHAT action and suggest menu items.
+- User: "aloo paratha bana do" -> Action: ORDER, itemId: (id), quantity: 1
+- User: "2 burger chahiye bhai" -> Action: ORDER, itemId: (id), quantity: 2
 
-------------------------------------------
-MENU RULES
-------------------------------------------
-
-- Only suggest items that are currently available in menu data.
-- Never invent items.
-- Never assume availability.
-- Only use items provided in the real-time menu data.
-- If item quantity is low (<=3), say:
-  "Only X left 👀"
-- If item is unavailable, clearly say:
-  "Ye item abhi available nahi hai."
-
-------------------------------------------
-FAST PREPARATION RULE
-------------------------------------------
-
-If user asks for quick items:
-- Suggest only items with lowest preparation time.
-- Never suggest slow items.
-
-------------------------------------------
-BIRTHDAY / BUDGET SUGGESTION RULE
-------------------------------------------
-
-If user gives budget and number of people:
-- Suggest combination ONLY from available menu.
-- Stay within budget.
-- Calculate properly.
-
-------------------------------------------
-ORDER CONFIRMATION RULE
-------------------------------------------
-
-When user clicks "Place Order":
-
-- Read cart data.
-- Show short friendly confirmation message.
-- Include:
-    User Name
-    Registered Email
-    Items with quantity
-    Total amount
-    Unique 6-digit Order ID
-- Use emojis but keep message clean.
-
-Example style:
-
-"Sir Ravi 😄
-Yeh raha aapka order summary 👇
-🍔 Burger ×2
-☕ Chai ×1
-Total: ₹80
-Order ID: ZKO4F7X
-
-Confirm karein?"
-
-------------------------------------------
-TRACK ORDER RULE
-------------------------------------------
-
-If user asks to track order:
-- Fetch most recent active order.
-- Show:
-   Order ID
-   Status
-   Estimated remaining time
-Example:
-"Order #482913 abhi prepare ho raha hai 🍳
-Approx 7 minutes lagega ⏳"
-
-------------------------------------------
-CANCEL ORDER RULE
-------------------------------------------
-
-If user asks to cancel order:
-- Always respond:
-
-"Sorry 😔 order yahan se cancel nahi ho sakta.
-Kripya canteen owner se contact karein:
-📞 9302593483"
-
-------------------------------------------
-WALLET RULES
-------------------------------------------
-
-If user says "Check wallet":
-- Fetch walletBalance.
-- Reply:
-   "Aapke wallet me ₹XXX available hai 💰"
-
-If wallet transfer:
-- Confirm recipient name before transfer.
-- Never assume.
-
-------------------------------------------
-PROFILE UPDATE RULE
-------------------------------------------
-
-If user modifies name:
-- Update profile.
-- Confirm:
-  "Aapka naam successfully update ho gaya 👍"
-
-------------------------------------------
-CANTEEN TIME RULE
-------------------------------------------
-
-If canteen is closed:
-- Clearly say:
-  "Canteen abhi band hai 😔
-   Timing: 9AM – 6PM"
-
-------------------------------------------
-SAFETY RULES
-------------------------------------------
-
-- Never expose internal IDs except Order ID.
-- Never expose payment secrets.
-- Never expose API keys.
-- Never fabricate wallet balances or order data.
-- Always rely on provided backend data.
-
-------------------------------------------
-PERSONALITY STYLE
-------------------------------------------
-
-- Friendly college vibe
-- Slightly casual but respectful
-- Not overly dramatic
-- Clear & short responses
-- Helpful suggestions
-
-You must strictly follow these rules.
-Never break character.
-Never go outside canteen domain.`;
+NEVER output plain text — ALWAYS output valid JSON.`;
 
         // Append dynamic context to system prompt
         systemPrompt += userContextBlock;
@@ -404,7 +282,6 @@ Keep it concise and fun with emojis!`;
             }
         }
 
-        // ── ORDER ENGINE: Detect order intent and process ──
         const chatMessages: ChatMessage[] = (messages || []).map((m: { role: string; content: string }) => ({
             role: m.role as "user" | "assistant",
             content: m.content,
@@ -413,31 +290,6 @@ Keep it concise and fun with emojis!`;
         const lastUserMsg = chatMessages.filter((m) => m.role === "user").pop();
 
         if (lastUserMsg) {
-            // Fetch live menu for order engine
-            try {
-                const menuSnap = await adminDb.collection("menuItems").get();
-                const liveMenu: MenuItemForEngine[] = menuSnap.docs.map((doc) => ({
-                    id: doc.id,
-                    name: doc.data().name || "",
-                    price: doc.data().price || 0,
-                    available: doc.data().available !== false,
-                    quantity: doc.data().quantity || 0,
-                }));
-
-                if (detectOrderIntent(lastUserMsg.content, liveMenu)) {
-                    const result = processOrder(lastUserMsg.content, liveMenu);
-                    if (result.status !== "CHAT_MODE") {
-                        return NextResponse.json(result);
-                    }
-                }
-            } catch (menuErr) {
-                console.error("Order engine menu fetch error:", menuErr);
-            }
-        }
-
-        // ── FAQ check: match the last user message against static FAQs ──
-        if (lastUserMsg) {
-            const { matchFaq } = await import("@/lib/faq");
             const faqResult = matchFaq(lastUserMsg.content);
 
             if (faqResult.matched) {
@@ -499,13 +351,31 @@ Keep it concise and fun with emojis!`;
             }
         }
 
-        // ── LLM fallback ──
+        // ── LLM Execution ──
         const { response, provider } = await chatWithFallback(chatMessages, systemPrompt);
 
-        // EXTRA: If the LLM response contains "successfully placed" and "Order ID", 
-        // OR manually check if action was confirm_order and response is positive.
-        // For now, let's keep it simple: if the client explicitly sends action "confirm_order", 
-        // we execute the order placement if the LLM confirms the intent.
+        // EXTRA: Provide graceful JSON cleanup since AI models occasionally leak markdown wrapper around JSON
+        let parsedLLMResp;
+        try {
+            let cleanRaw = response.trim();
+            if (cleanRaw.startsWith("\`\`\`json")) {
+                cleanRaw = cleanRaw.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+            } else if (cleanRaw.startsWith("\`\`\`")) {
+                cleanRaw = cleanRaw.replace(/\`\`\`/g, "").trim();
+            }
+
+            // Attempt initial JSON extraction via standard boundary brackets if there are trailing conversational strings
+            const jsonStartInx = cleanRaw.indexOf("{");
+            const jsonEndInx = cleanRaw.lastIndexOf("}");
+            if (jsonStartInx !== -1 && jsonEndInx !== -1 && jsonEndInx > jsonStartInx) {
+                cleanRaw = cleanRaw.substring(jsonStartInx, jsonEndInx + 1);
+            }
+
+            parsedLLMResp = JSON.parse(cleanRaw);
+        } catch (e) {
+            console.warn("Failed to natively parse LLM JSON framework fallback to CHAT mode:", e);
+            parsedLLMResp = { action: "CHAT", message: response };
+        }
 
         if (action === "confirm_order" && cart && cart.length > 0) {
             // Re-generate order ID and place it
@@ -601,11 +471,11 @@ Keep it concise and fun with emojis!`;
             }
         }
 
-        return NextResponse.json({ message: response, provider });
-    } catch (error) {
+        return NextResponse.json({ ...parsedLLMResp, provider });
+    } catch (error: any) {
         console.error("Chat error:", error);
         return NextResponse.json(
-            { message: "Oops! Something went wrong. Please try again! 🙏", provider: "error" },
+            { error: error?.message || String(error), provider: "error" },
             { status: 500 }
         );
     }
