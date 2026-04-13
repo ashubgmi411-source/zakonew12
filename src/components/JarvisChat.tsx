@@ -156,15 +156,13 @@ export default function JarvisChat() {
 
         setMessages((prev) => [...prev, { role: "user", content: "✅ Haan, Order Confirm Karo", timestamp: Date.now() }]);
 
-        const execItems = [
-            {
-                item_id: order.itemId,
-                name: order.itemName,
-                quantity: order.quantity,
-                unit_price: order.itemPrice || order.price,
-                total_price: (order.itemPrice || order.price) * order.quantity,
-            },
-        ];
+        const execItems = (Array.isArray(order) ? order : [order]).map(itm => ({
+            item_id: itm.itemId,
+            name: itm.itemName,
+            quantity: itm.quantity,
+            unit_price: itm.itemPrice || itm.price,
+            total_price: (itm.itemPrice || itm.price) * itm.quantity,
+        }));
 
         await handleSend("execute_order", execItems);
         pendingOrderRef.current = null;
@@ -218,14 +216,14 @@ export default function JarvisChat() {
                 const safeMsg = getSafeMsg(data);
 
                 if (res.ok) {
-                    if (data.action === "ORDER") {
-                        const orderData = {
-                            itemId: data.itemId,
-                            itemName: data.itemName,
-                            quantity: data.quantity,
-                            price: data.itemPrice || data.price || 0,
+                    if (data.action === "ORDER" && data.items && data.items.length > 0) {
+                        const orderData = data.items.map((item: any) => ({
+                            itemId: item.itemId,
+                            itemName: item.itemName,
+                            quantity: item.quantity,
+                            price: item.price || 0,
                             message: safeMsg,
-                        };
+                        }));
                         setConfirmOrder(orderData);
                         pendingOrderRef.current = orderData;
                         setShowConfirm(true);
@@ -523,12 +521,24 @@ export default function JarvisChat() {
                                             Order Confirm Karo
                                         </p>
                                     </div>
-                                    <p className="text-sm mb-4 font-medium" style={{ color: "var(--text-secondary)" }}>
-                                        {confirmOrder.itemName} x{confirmOrder.quantity} —{" "}
-                                        <span style={{ color: "var(--accent)" }} className="font-bold">
-                                            ₹{confirmOrder.price * confirmOrder.quantity}
-                                        </span>
-                                    </p>
+                                    <div className="text-sm mb-4 font-medium space-y-1" style={{ color: "var(--text-secondary)" }}>
+                                        {(Array.isArray(confirmOrder) ? confirmOrder : [confirmOrder]).map((item: any, idx: number) => (
+                                            <div key={idx} className="flex justify-between items-center bg-white/5 px-3 py-2 rounded-lg">
+                                                <span>{item.itemName} x{item.quantity}</span>
+                                                <span style={{ color: "var(--accent)" }} className="font-bold">
+                                                    ₹{item.price * item.quantity}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        {Array.isArray(confirmOrder) && confirmOrder.length > 1 && (
+                                            <div className="flex justify-between items-center mt-2 px-3 pt-2 border-t border-white/10">
+                                                <span className="font-bold text-white">Total</span>
+                                                <span style={{ color: "var(--accent)" }} className="font-bold">
+                                                    ₹{confirmOrder.reduce((sum, item) => sum + item.price * item.quantity, 0)}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={handleConfirmLLM}

@@ -69,15 +69,17 @@ export async function POST(req: NextRequest) {
 
         // Fetch live menu unconditionally for context injection
         let menuItemsJSON = "[]";
+        let liveMenu: any[] = [];
         try {
             const menuSnap = await adminDb.collection("menuItems").where("available", "==", true).get();
-            const liveMenu = menuSnap.docs.map((doc) => ({
+            liveMenu = menuSnap.docs.map((doc) => ({
                 id: doc.id,
                 name: doc.data().name || "",
                 price: doc.data().price || 0,
-                // Avoid injecting huge amounts of redundant data to keep prompt small
+                quantity: doc.data().quantity || 0,
             }));
-            menuItemsJSON = JSON.stringify(liveMenu);
+            // Avoid injecting huge amounts of redundant data to keep prompt small
+            menuItemsJSON = JSON.stringify(liveMenu.map(m => ({ id: m.id, name: m.name, price: m.price })));
         } catch (e) {
             console.error("Menu fetch error for JARVIS prompt:", e);
             menuItemsJSON = "Failed to load live menu. Apologize to the user.";
@@ -110,10 +112,9 @@ Common Hindi order phrases to detect:
 RESPONSE FORMAT — Always respond with valid JSON only:
 {
   "action": "ORDER" | "CHAT" | "MENU" | "STATUS",
-  "itemId": "firestore_id (only for ORDER)",
-  "itemName": "item name (only for ORDER)", 
-  "quantity": 1,
-  "price": 0,
+  "orderItems": [
+    { "itemName": "item name", "quantity": 1 }
+  ],
   "message": "Your conversational reply here"
 }
 
@@ -125,8 +126,8 @@ MATCHING RULES:
 
 NATURAL LANGUAGE EXAMPLES:
 - User: "yaar bhookh lagi hai kuch do" -> You respond with CHAT action and suggest menu items.
-- User: "aloo paratha bana do" -> Action: ORDER, itemId: (id), quantity: 1
-- User: "2 burger chahiye bhai" -> Action: ORDER, itemId: (id), quantity: 2
+- User: "aloo paratha bana do" -> Action: ORDER, orderItems: [{"itemName": "aloo paratha", "quantity": 1}]
+- User: "2 burger aur ek chai chahiye bhai" -> Action: ORDER, orderItems: [{"itemName": "burger", "quantity": 2}, {"itemName": "chai", "quantity": 1}]
 
 NEVER output plain text — ALWAYS output valid JSON.`;
 
@@ -399,11 +400,54 @@ Keep it extremely short and concise! NO long explanations.`;
         }
 
         // ── Block Output if LLM Hallucinates Order While Closed ──
-        if (parsedLLMResp?.action === "ORDER" && !isCanteenOpen) {
-            parsedLLMResp = { 
-                action: "CHAT", 
-                message: `Canteen abhi band hai yaar! Khulne ka time hai: ${canteenTiming}. Abhi order place nahi ho sakta 😔` 
-            };
+        if (parsedLLMResp?.action === "ORDER") {
+            if (!isCanteenOpen) {
+                parsedLLMResp = { 
+                    action: "CHAT", 
+                    message: `Canteen abhi band hai yaar! Khulne ka time hai: ${canteenTiming}. Abhi order place nahi ho sakta 😔` 
+                };
+            } else {
+                // Parse orderItems array to validate and attach real prices
+                const reqItems = parsedLLMResp.orderItems || [];
+                if (reqItems.length === 0 && parsedLLMResp.itemName) {
+                    reqItems.push({ itemName: parsedLLMResp.itemName, quantity: parsedLLMResp.quantity || 1 });
+                }
+                
+                if (reqItems.length === 0) {
+                    parsedLLMResp.action = "CHAT";
+                    parsedLLMResp.message = "Kya order karna hai, wapas batayein?";
+                } else {
+                    const validItems = [];
+                    const outOfStock = [];
+                    const notFound = [];
+                    for (const req of reqItems) {
+                        const matched = liveMenu.find(m => m.id === req.itemId || m.name.toLowerCase() === (req.itemName || "").toLowerCase());
+                        if (!matched) notFound.push(req.itemName);
+                        else if (matched.quantity < (req.quantity || 1)) outOfStock.push(`${matched.name} (sirf ${matched.quantity} hai)`);
+                        else {
+                            validItems.push({
+                                item_id: matched.id,
+                                name: matched.name,
+                                quantity: parseInt(req.quantity) || 1,
+                                unit_price: matched.price,
+                                total_price: matched.price * (parseInt(req.quantity) || 1),
+                            });
+                        }
+                    }
+
+                    if (validItems.length === 0) {
+                        parsedLLMResp.action = "CHAT";
+                        parsedLLMResp.message = "Sorry, " + [...notFound, ...outOfStock].join(", ") + " available nahi hai.";
+                    } else {
+                        parsedLLMResp.action = "ORDER";
+                        parsedLLMResp.status = "ORDER_CONFIRMED";
+                        parsedLLMResp.items = validItems;
+                        if (notFound.length > 0 || outOfStock.length > 0) {
+                            parsedLLMResp.message = `Main ${validItems.map(v=>v.name).join(", ")} add kar diya hai. Lekin ${[...notFound, ...outOfStock].join(", ")} nahi mil paayega.\n\n` + (parsedLLMResp.message || "");
+                        }
+                    }
+                }
+            }
         }
 
         if (action === "confirm_order" && cart && cart.length > 0) {

@@ -91,18 +91,16 @@ ${menuListStr}
 You MUST return ONLY valid JSON. No markdown, no backticks, no text outside braces.
 {
   "action": "ORDER" | "CHAT" | "MENU" | "RECOMMENDATION" | "WALLET" | "UNAVAILABLE" | "CONFIRM_PENDING" | "CANCEL_PENDING",
-  "itemId": "firestore_id (only for ORDER)",
-  "itemName": "item name (only for ORDER)",
-  "itemPrice": 0,
-  "quantity": 1,
+  "orderItems": [
+    { "itemName": "item name", "quantity": 1 }
+  ],
   "message": "Your conversational reply",
   "suggestions": ["item1", "item2"] 
 }
 
 ═══ INTENT DETECTION RULES ═══
-1. ORDER: User wants to buy something → action="ORDER", include itemId, itemName, itemPrice, quantity
-   - "2 samosa de do" → ORDER
-   - "ek coffee" → ORDER
+1. ORDER: User wants to buy something → action="ORDER", include 'orderItems' array
+   - "2 samosa, 3 patty" → "orderItems": [{"itemName": "samosa", "quantity": 2}, {"itemName": "patty", "quantity": 3}]
    - Match item names FUZZILY (burgar=burger, chai=tea, etc.)
    - Extract quantity from Hindi numbers: ek=1, do=2, teen=3, char=4, panch=5
 
@@ -133,8 +131,7 @@ You MUST return ONLY valid JSON. No markdown, no backticks, no text outside brac
 - If stock is 0 → say "out of stock" and suggest alternative
 - If wallet balance < order total → warn: "Balance kam hai, ₹X chahiye lekin ₹${walletBalance} hai"
 - Never make up items not in the menu
-- Never hallucinate prices — use ONLY prices from the menu list
-- For multi-item orders, process the FIRST item and mention others in message
+- For multi-item orders, add ALL items to the 'orderItems' array and confirm all of them in the message.
 
 ═══ LANGUAGE ═══
 ${langInstructions}

@@ -302,56 +302,81 @@ export async function POST(req: NextRequest) {
 
         // Handle ORDER action
         if (llmAction === "ORDER") {
-            // Validate item exists in menu
-            const matchedItem = availableMenu.find(
-                (m) =>
-                    m.id === parsed.itemId ||
-                    m.name.toLowerCase() === (parsed.itemName || "").toLowerCase()
-            );
+            const reqItems = parsed.orderItems || [];
+            
+            // Fallback for single item format just in case
+            if (reqItems.length === 0 && parsed.itemName) {
+                reqItems.push({ itemName: parsed.itemName, quantity: parsed.quantity || 1 });
+            }
 
-            if (!matchedItem) {
+            if (reqItems.length === 0) {
                 parsed.action = "UNAVAILABLE";
-                parsed.message = parsed.message || `Sorry, "${parsed.itemName || "yeh item"}" menu mein nahi mila.`;
-            } else if (matchedItem.quantity < (parsed.quantity || 1)) {
-                parsed.action = "UNAVAILABLE";
-                parsed.message = `${matchedItem.name} out of stock hai — sirf ${matchedItem.quantity} bacha hai.`;
+                parsed.message = parsed.message || "Aapne kya order kiya samajh nahi aaya. Kripya dubara batayein?";
             } else {
-                // Fix item data from actual menu
-                parsed.itemId = matchedItem.id;
-                parsed.itemName = matchedItem.name;
-                parsed.itemPrice = matchedItem.price;
+                const orderItems: OrderedItemMemory[] = [];
+                const unavailableNames: string[] = [];
+                const outOfStockNames: string[] = [];
+                const validNames: string[] = [];
 
-                // Generate upsell suggestions
-                const upsellResult = generateUpsell(
-                    [matchedItem.name],
-                    availableMenu as MenuItemForUpsell[],
-                    2
-                );
-                if (upsellResult.suggestions.length > 0) {
-                    upsellData = {
-                        message: upsellResult.message,
-                        items: upsellResult.suggestions.map((s) => ({
-                            id: s.item.id,
-                            name: s.item.name,
-                            price: s.item.price,
-                        })),
-                    };
-                    // Append upsell hint to message
-                    if (upsellResult.message) {
-                        parsed.message = (parsed.message || "") + "\n\n" + upsellResult.message;
+                for (const reqItem of reqItems) {
+                    const matchedItem = availableMenu.find(
+                        (m) =>
+                            m.id === reqItem.itemId ||
+                            m.name.toLowerCase() === (reqItem.itemName || "").toLowerCase()
+                    );
+
+                    if (!matchedItem) {
+                        unavailableNames.push(reqItem.itemName || "Unknown item");
+                    } else if (matchedItem.quantity < (reqItem.quantity || 1)) {
+                        outOfStockNames.push(`${matchedItem.name} (sirf ${matchedItem.quantity} bacha hai)`);
+                    } else {
+                        orderItems.push({
+                            itemId: matchedItem.id,
+                            itemName: matchedItem.name,
+                            quantity: parseInt(reqItem.quantity) || 1,
+                            price: matchedItem.price,
+                        });
+                        validNames.push(matchedItem.name);
                     }
                 }
 
-                // Set pending order in context
-                const orderItems: OrderedItemMemory[] = [
-                    {
-                        itemId: matchedItem.id,
-                        itemName: matchedItem.name,
-                        quantity: parsed.quantity || 1,
-                        price: matchedItem.price,
-                    },
-                ];
-                setPendingOrder(uid, orderItems);
+                if (orderItems.length === 0) {
+                    parsed.action = "UNAVAILABLE";
+                    if (unavailableNames.length > 0) parsed.message = `Sorry, "${unavailableNames.join(", ")}" menu mein nahi mila.`;
+                    else if (outOfStockNames.length > 0) parsed.message = `${outOfStockNames.join(", ")} out of stock hain.`;
+                } else {
+                    // Save valid order items into parsed for frontend
+                    parsed.orderItems = orderItems;
+                    
+                    // Generate upsell based on first valid item
+                    const upsellResult = generateUpsell(
+                        [validNames[0]],
+                        availableMenu as MenuItemForUpsell[],
+                        2
+                    );
+                    if (upsellResult.suggestions.length > 0) {
+                        upsellData = {
+                            message: upsellResult.message,
+                            items: upsellResult.suggestions.map((s) => ({
+                                id: s.item.id,
+                                name: s.item.name,
+                                price: s.item.price,
+                            })),
+                        };
+                        if (upsellResult.message) {
+                            parsed.message = (parsed.message || "") + "\n\n💡 " + upsellResult.message;
+                        }
+                    }
+
+                    // Set pending order in context
+                    setPendingOrder(uid, orderItems);
+                    
+                    // Add warnings if any part of the order failed
+                    if (unavailableNames.length > 0 || outOfStockNames.length > 0) {
+                        const issues = [...unavailableNames.map(n => `"${n}" menu mein nahi hai`), ...outOfStockNames].join(", ");
+                        parsed.message = `Main ${validNames.join(", ")} aapke order mein add kar diya hai!\nLekin dhyan de: ${issues}.\n\n` + (parsed.message || "");
+                    }
+                }
             }
         }
 
@@ -417,6 +442,7 @@ export async function POST(req: NextRequest) {
             upsell: upsellData,
             walletBalance,
             voiceText: stripEmojis(parsed.message || ""),
+            items: parsed.orderItems || [], // Provide items for frontend compatibility
         });
     } catch (error: any) {
         console.error("[Assistant] Error:", error);
