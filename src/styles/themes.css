@@ -13,6 +13,7 @@ html, body, [data-theme] {
   --bg-primary: #0A0A0F;
   --bg-secondary: #13131A;
   --bg-elevated: #1C1C27;
+  --bg-input: #23233A;
   --border: #2A2A3A;
   --text-primary: #E8E8F0;
   --text-secondary: #8888A0;
@@ -29,6 +30,7 @@ html, body, [data-theme] {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255,255,255,0.06);
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  border-radius: 16px;
 }
 
 /* ☀️ THEME 2 — "Light" */
@@ -36,6 +38,7 @@ html, body, [data-theme] {
   --bg-primary: #F8F7F4;
   --bg-secondary: #FFFFFF;
   --bg-elevated: #F0EEE9;
+  --bg-input: #E8E4DC;
   --border: #E8E4DC;
   --text-primary: #1A1A1A;
   --text-secondary: #6B6B6B;
@@ -54,11 +57,23 @@ html, body, [data-theme] {
   border-radius: 16px;
 }
 
+/* Light theme text color overrides for dark-hardcoded elements */
+[data-theme="light"] .text-white { color: var(--text-primary) !important; }
+[data-theme="light"] .text-zayko-300 { color: var(--text-secondary) !important; }
+[data-theme="light"] .text-zayko-400 { color: var(--text-secondary) !important; }
+[data-theme="light"] .text-zayko-500 { color: #888 !important; }
+[data-theme="light"] .text-zayko-600 { color: #999 !important; }
+[data-theme="light"] .bg-zayko-900 { background-color: var(--bg-primary) !important; }
+[data-theme="light"] .bg-zayko-800\/40 { background-color: rgba(240,238,233,0.8) !important; }
+[data-theme="light"] .border-white\/\[0\.06\] { border-color: var(--border) !important; }
+[data-theme="light"] .border-white\/\[0\.03\] { border-color: rgba(0,0,0,0.06) !important; }
+
 /* 🔥 THEME 3 — "Ember" */
 [data-theme="ember"] {
   --bg-primary: #0F0A08;
   --bg-secondary: #1A1008;
   --bg-elevated: #261808;
+  --bg-input: #3D2810;
   --border: #3D2810;
   --text-primary: #F5E6D0;
   --text-secondary: #A07850;
@@ -75,6 +90,7 @@ html, body, [data-theme] {
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255,107,53,0.12);
   box-shadow: 0 8px 32px rgba(255,69,0,0.15), inset 0 1px 0 rgba(255,150,50,0.08);
+  border-radius: 16px;
 }
 
 /* 🌊 THEME 4 — "Ocean" */
@@ -82,6 +98,7 @@ html, body, [data-theme] {
   --bg-primary: #060D1F;
   --bg-secondary: #0D1829;
   --bg-elevated: #142035;
+  --bg-input: #1E3050;
   --border: #1E3050;
   --text-primary: #E0EEFF;
   --text-secondary: #6A8CAF;
@@ -98,6 +115,7 @@ html, body, [data-theme] {
   backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(0,212,255,0.10);
   box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.05);
+  border-radius: 16px;
 }
 
 /* 🌿 THEME 5 — "Forest" */
@@ -105,6 +123,7 @@ html, body, [data-theme] {
   --bg-primary: #080F0A;
   --bg-secondary: #0F1A10;
   --bg-elevated: #162318;
+  --bg-input: #1E3320;
   --border: #1E3320;
   --text-primary: #E0F0E0;
   --text-secondary: #6A9A6A;
@@ -121,6 +140,7 @@ html, body, [data-theme] {
   backdrop-filter: blur(20px);
   border: 1px solid rgba(29,185,84,0.10);
   box-shadow: 0 8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(29,185,84,0.06);
+  border-radius: 16px;
 }
 
 /* Global scrollbar rules */

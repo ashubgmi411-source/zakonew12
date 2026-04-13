@@ -140,6 +140,12 @@ export default function MenuCard({ id, name, price, category, available, quantit
                         </div>
                     )}
 
+                    {/* Category badge — top-left absolute */}
+                    <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold capitalize backdrop-blur-md border border-white/[0.12] bg-black/40 text-white/90">
+                        <span className="text-[10px]">{categoryEmoji}</span>
+                        {category}
+                    </span>
+
                     {/* Cinematic gradient overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/30" />

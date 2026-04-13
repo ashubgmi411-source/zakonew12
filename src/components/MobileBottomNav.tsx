@@ -32,7 +32,7 @@ export default function MobileBottomNav() {
     if (pathname?.startsWith("/auth")) return null;
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden px-3 pb-2">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 md:hidden px-3 pb-2">
             {/* Premium glass container */}
             <div className="overflow-hidden rounded-2xl backdrop-blur-3xl shadow-xl border" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
                 <div className="grid grid-cols-5 px-2 py-1 relative">

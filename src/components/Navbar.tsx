@@ -1,11 +1,12 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Utensils, ShoppingCart, ClipboardList, Wallet, User, Zap } from "lucide-react";
+import { Utensils, ShoppingCart, ClipboardList, Wallet, User, Palette } from "lucide-react";
 
 export default function Navbar() {
     const { user, profile, signOut } = useAuth();
@@ -34,10 +35,9 @@ export default function Navbar() {
                         <motion.div
                             whileHover={{ scale: 1.1, rotate: 5 }}
                             whileTap={{ scale: 0.95 }}
-                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg"
-                            style={{ background: "var(--btn-primary)" }}
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-lg overflow-hidden"
                         >
-                            <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white fill-current" />
+                            <Image src="/zayko-logo.svg" alt="Zayko" width={40} height={40} className="w-full h-full" priority />
                         </motion.div>
                         <div>
                             <h1 className="text-sm sm:text-lg font-display font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>Zayko</h1>
@@ -131,6 +131,19 @@ export default function Navbar() {
 
                     {/* ── Right Section ── */}
                     <div className="flex items-center gap-2 sm:gap-3">
+                        {/* Theme Switcher */}
+                        {user && (
+                            <motion.button
+                                whileHover={{ scale: 1.1, rotate: 15 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => window.dispatchEvent(new Event('open-theme-panel'))}
+                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center border transition-all duration-300"
+                                style={{ background: "var(--bg-elevated)", borderColor: "var(--border)", color: "var(--accent)" }}
+                                title="Change Theme"
+                            >
+                                <Palette className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </motion.button>
+                        )}
                         {/* Wallet Badge */}
                         {user && profile && (
                             <Link

@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   description: "AI-Powered Canteen Management",
   keywords: "zayko, food ordering, campus, AI chatbot, smart canteen",
   icons: {
-    icon: "/favicon.ico",
-    apple: "/icon.png",
+    icon: "/zayko-logo.svg",
+    apple: "/zayko-logo.svg",
   }
 };
 
@@ -42,7 +42,7 @@ export default function RootLayout({
             <UserThemeWrapper>
               <IntroProvider>
                 <Navbar />
-                <main className="flex-1"><PageTransition>{children}</PageTransition></main>
+                <main className="flex-1 pb-20"><PageTransition>{children}</PageTransition></main>
                 <Footer />
                 <MobileBottomNav />
                 <JarvisChat />

@@ -335,33 +335,43 @@ function OrderCard({ order, onReview, onReceipt }: { order: Order; onReview?: ()
 
 /* ─── Receipt Modal Component ────────────────────────────── */
 function ReceiptModal({ order, profile, onClose }: { order: Order; profile: any; onClose: () => void }) {
+    const receiptRef = React.useRef<HTMLDivElement>(null);
     const orderDate = new Date(order.createdAt);
     const subtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const [downloading, setDownloading] = React.useState(false);
 
-    const handlePrint = () => {
-        const printContent = document.getElementById("receipt-print-area");
-        if (!printContent) return;
-        const win = window.open("", "_blank", "width=400,height=600");
-        if (!win) return;
-        win.document.write(`
-            <html><head><title>Receipt #${order.orderId}</title>
-            <style>
-                * { margin: 0; padding: 0; box-sizing: border-box; }
-                body { font-family: 'Courier New', monospace; padding: 20px; max-width: 350px; margin: auto; }
-                .center { text-align: center; }
-                .bold { font-weight: bold; }
-                .divider { border-top: 1px dashed #333; margin: 10px 0; }
-                .row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 13px; }
-                .header { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-                .sub { font-size: 11px; color: #666; }
-                .total-row { font-size: 16px; font-weight: bold; margin: 8px 0; }
-                .footer { font-size: 10px; color: #999; margin-top: 16px; text-align: center; }
-            </style></head><body>
-                ${printContent.innerHTML}
-            </body></html>
-        `);
-        win.document.close();
-        win.print();
+    const handleDownloadPDF = async () => {
+        if (!receiptRef.current || downloading) return;
+        setDownloading(true);
+        try {
+            const html2canvas = (await import("html2canvas")).default;
+            const jsPDF = (await import("jspdf")).default;
+
+            const canvas = await html2canvas(receiptRef.current, {
+                scale: 2,
+                backgroundColor: "#FFFFFF",
+                useCORS: true,
+            });
+
+            const imgData = canvas.toDataURL("image/png");
+            // A5 size: 148mm x 210mm
+            const pdfWidth = 148;
+            const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+            const pdf = new jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: [pdfWidth, Math.max(imgHeight + 10, 210)],
+            });
+
+            pdf.addImage(imgData, "PNG", 0, 5, pdfWidth, imgHeight);
+            pdf.save(`Zayko_Receipt_${order.orderId}.pdf`);
+        } catch (err) {
+            console.error("PDF generation failed:", err);
+            toast.error("Download failed. Please try again.");
+        } finally {
+            setDownloading(false);
+        }
     };
 
     return (
@@ -390,96 +400,96 @@ function ReceiptModal({ order, profile, onClose }: { order: Order; profile: any;
 
                 {/* Scrollable Receipt Content */}
                 <div className="flex-1 overflow-y-auto p-5">
-                    <div id="receipt-print-area">
+                    {/* Receipt div with inline styles for html2canvas */}
+                    <div ref={receiptRef} style={{ background: "#FFFFFF", padding: "24px 20px", borderRadius: "16px", fontFamily: "'Inter', 'Courier New', sans-serif", color: "#111" }}>
                         {/* Brand */}
-                        <div className="center text-center mb-4">
-                            <p className="header text-xl font-display font-bold text-white">⚡ ZAYKO</p>
-                            <p className="sub text-[11px] text-zayko-500 uppercase tracking-widest">Smart Canteen System</p>
+                        <div style={{ textAlign: "center", marginBottom: "16px" }}>
+                            <div style={{ fontSize: "22px", fontWeight: "800", color: "#111", letterSpacing: "2px" }}>⚡ ZAYKO</div>
+                            <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "3px", marginTop: "2px" }}>Smart Canteen System</div>
                         </div>
 
-                        <div className="divider border-t border-dashed border-white/10 my-3" />
+                        <div style={{ borderTop: "2px dashed #DDD", margin: "12px 0" }} />
 
                         {/* Order Info */}
-                        <div className="space-y-1.5 text-xs mb-3">
-                            <div className="row flex justify-between">
-                                <span className="text-zayko-400">Order ID</span>
-                                <span className="text-white font-bold">#{order.orderId}</span>
+                        <div style={{ fontSize: "12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                                <span style={{ color: "#666" }}>Order ID</span>
+                                <span style={{ fontWeight: "700", color: "#111" }}>#{order.orderId}</span>
                             </div>
-                            <div className="row flex justify-between">
-                                <span className="text-zayko-400">Date</span>
-                                <span className="text-zayko-300">{orderDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                                <span style={{ color: "#666" }}>Date</span>
+                                <span style={{ color: "#333" }}>{orderDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
                             </div>
-                            <div className="row flex justify-between">
-                                <span className="text-zayko-400">Time</span>
-                                <span className="text-zayko-300">{orderDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                                <span style={{ color: "#666" }}>Time</span>
+                                <span style={{ color: "#333" }}>{orderDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                             </div>
-                            <div className="row flex justify-between">
-                                <span className="text-zayko-400">Customer</span>
-                                <span className="text-zayko-300">{order.userName || profile?.name || "User"}</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                                <span style={{ color: "#666" }}>Customer</span>
+                                <span style={{ color: "#333" }}>{order.userName || profile?.name || "User"}</span>
                             </div>
-                            <div className="row flex justify-between">
-                                <span className="text-zayko-400">Status</span>
-                                <span className={`font-bold uppercase text-[10px] px-2 py-0.5 rounded-full ${
-                                    order.status === "completed" ? "text-emerald-400 bg-emerald-400/10" :
-                                    order.status === "cancelled" ? "text-red-400 bg-red-400/10" :
-                                    "text-amber-400 bg-amber-400/10"
-                                }`}>{order.status}</span>
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <span style={{ color: "#666" }}>Status</span>
+                                <span style={{ fontWeight: "700", color: order.status === "completed" ? "#10B981" : order.status === "cancelled" ? "#EF4444" : "#F59E0B", textTransform: "uppercase", fontSize: "11px" }}>{order.status}</span>
                             </div>
                         </div>
 
-                        <div className="divider border-t border-dashed border-white/10 my-3" />
+                        <div style={{ borderTop: "2px dashed #DDD", margin: "12px 0" }} />
 
-                        {/* Items Table */}
-                        <div className="mb-3">
-                            <div className="flex justify-between text-[10px] text-zayko-500 uppercase font-bold tracking-wider mb-2 px-1">
+                        {/* Items */}
+                        <div style={{ marginBottom: "12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#999", textTransform: "uppercase", fontWeight: "700", letterSpacing: "1px", marginBottom: "8px" }}>
                                 <span>Item</span>
                                 <span>Amount</span>
                             </div>
-                            <div className="space-y-2">
-                                {order.items.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between items-start text-xs px-1">
-                                        <div className="flex-1">
-                                            <span className="text-white font-medium">{item.name}</span>
-                                            <span className="text-zayko-500 ml-1.5">×{item.quantity}</span>
-                                            <span className="text-zayko-600 ml-1 text-[10px]">@ ₹{item.price}</span>
-                                        </div>
-                                        <span className="text-white font-bold ml-3">₹{item.price * item.quantity}</span>
+                            {order.items.map((item, idx) => (
+                                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", marginBottom: "6px" }}>
+                                    <div>
+                                        <span style={{ color: "#111", fontWeight: "600" }}>{item.name}</span>
+                                        <span style={{ color: "#999", marginLeft: "6px" }}>×{item.quantity}</span>
+                                        <span style={{ color: "#BBB", marginLeft: "4px", fontSize: "10px" }}>@ ₹{item.price}</span>
                                     </div>
-                                ))}
-                            </div>
+                                    <span style={{ fontWeight: "700", color: "#111" }}>₹{item.price * item.quantity}</span>
+                                </div>
+                            ))}
                         </div>
 
-                        <div className="divider border-t border-dashed border-white/10 my-3" />
+                        <div style={{ borderTop: "2px dashed #DDD", margin: "12px 0" }} />
 
                         {/* Totals */}
-                        <div className="space-y-1.5 text-xs px-1">
-                            <div className="flex justify-between">
-                                <span className="text-zayko-400">Subtotal</span>
-                                <span className="text-zayko-300">₹{subtotal}</span>
+                        <div style={{ fontSize: "12px" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                                <span style={{ color: "#666" }}>Subtotal</span>
+                                <span style={{ color: "#333" }}>₹{subtotal}</span>
                             </div>
-                            <div className="flex justify-between text-base font-bold mt-2 pt-2 border-t border-white/[0.06]">
-                                <span className="text-white">Total</span>
-                                <span className="text-gold-400">₹{order.total}</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "18px", fontWeight: "800", marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #EEE" }}>
+                                <span style={{ color: "#111" }}>Total</span>
+                                <span style={{ color: "#FF6B35" }}>₹{order.total}</span>
                             </div>
                         </div>
 
-                        <div className="divider border-t border-dashed border-white/10 my-3" />
+                        <div style={{ borderTop: "2px dashed #DDD", margin: "12px 0" }} />
 
-                        {/* Payment Method */}
-                        <div className="text-center text-[10px] text-zayko-500 space-y-1">
-                            <p><Wallet className="w-3 h-3 inline-block -mt-0.5 mr-1" />Paid via <span className="text-zayko-300 font-bold">Zayko Wallet</span></p>
-                            <p className="italic">Thank you for ordering with Zayko!</p>
+                        {/* Footer */}
+                        <div style={{ textAlign: "center", fontSize: "10px", color: "#999" }}>
+                            <div style={{ fontWeight: "600" }}>💳 Paid via Zayko Wallet</div>
+                            <div style={{ marginTop: "4px", fontStyle: "italic" }}>Thank you for ordering with Zayko!</div>
+                            <div style={{ marginTop: "6px", fontSize: "8px", color: "#CCC" }}>
+                                {orderDate.toLocaleDateString()} {orderDate.toLocaleTimeString()} • #{order.orderId}
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Print Button */}
+                {/* Download Button (outside receipt ref) */}
                 <div className="p-4 border-t border-white/[0.06]">
                     <button
-                        onClick={handlePrint}
-                        className="w-full py-3.5 bg-gradient-to-r from-gold-400 to-gold-500 text-zayko-900 font-display font-bold rounded-2xl hover:shadow-[0_4px_20px_rgba(251,191,36,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        onClick={handleDownloadPDF}
+                        disabled={downloading}
+                        className="w-full py-3.5 bg-gradient-to-r from-gold-400 to-gold-500 text-zayko-900 font-display font-bold rounded-2xl hover:shadow-[0_4px_20px_rgba(251,191,36,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                        <Printer className="w-5 h-5" /> Print Receipt
+                        <Receipt className="w-5 h-5" />
+                        {downloading ? "Generating PDF..." : "Download Receipt"}
                     </button>
                 </div>
 

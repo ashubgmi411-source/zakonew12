@@ -51,6 +51,8 @@ export default function JarvisChat() {
     const [processing, setProcessing] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmOrder, setConfirmOrder] = useState<any>(null);
+    const pendingOrderRef = useRef<any>(null); // prevent double confirm
+    const confirmingRef = useRef(false); // guard against re-entry
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -153,16 +155,24 @@ export default function JarvisChat() {
     }, []);
 
     const handleConfirmLLM = async () => {
-        if (!confirmOrder) return;
+        if (confirmingRef.current) return; // prevent double click
+        const order = pendingOrderRef.current || confirmOrder;
+        if (!order) return;
+        confirmingRef.current = true;
         setShowConfirm(false);
+        setConfirmOrder(null);
+        // Add user confirmation message directly — do NOT send to LLM
+        setMessages(prev => [...prev, { role: "user", content: "✅ Haan, Order Confirm Karo", timestamp: Date.now() }]);
         const execItems = [{
-            item_id: confirmOrder.itemId,
-            name: confirmOrder.itemName,
-            quantity: confirmOrder.quantity,
-            unit_price: confirmOrder.price,
-            total_price: confirmOrder.price * confirmOrder.quantity
+            item_id: order.itemId,
+            name: order.itemName,
+            quantity: order.quantity,
+            unit_price: order.price,
+            total_price: order.price * order.quantity
         }];
         await handleSend("execute_order", execItems);
+        pendingOrderRef.current = null;
+        confirmingRef.current = false;
     };
 
     const handleSend = useCallback(async (action?: string, orderItems?: OrderedItem[], overrideText?: string) => {
@@ -199,15 +209,25 @@ export default function JarvisChat() {
 
             const data = await res.json();
 
+            // Safety: extract message — never show raw JSON
+            const safeMessage = (d: any): string => {
+                if (typeof d === 'string') return d;
+                if (d?.message && typeof d.message === 'string') return d.message;
+                if (d?.status) return buildStructuredDisplay(d);
+                return 'Kuch samajh nahi aaya, please dobara try karein.';
+            };
+
             if (res.ok) {
                 if (data.action === "ORDER") {
-                    setConfirmOrder({
+                    const orderData = {
                         itemId: data.itemId,
                         itemName: data.itemName,
                         quantity: data.quantity,
                         price: data.price || 0,
                         message: data.message
-                    });
+                    };
+                    setConfirmOrder(orderData);
+                    pendingOrderRef.current = orderData;
                     setShowConfirm(true);
                     speak(data.message || `${data.itemName} ka order confirm karein?`);
                     
@@ -215,7 +235,7 @@ export default function JarvisChat() {
                         ...prev,
                         {
                             role: "assistant",
-                            content: data.message || "Aapka order ready hai confirm karne ke liye:",
+                            content: safeMessage(data),
                             timestamp: Date.now(),
                         },
                     ]);
@@ -228,7 +248,6 @@ export default function JarvisChat() {
                         
                         // Voice out the response
                         let speakText = data.message || displayContent;
-                        // Simplify order summary for speech
                         if (data.status === "ORDER_CONFIRMED") {
                             speakText = `Aapka order summary: Total amount ${data.grand_total} rupees. Kya main order confirm karu?`;
                         }
@@ -249,13 +268,14 @@ export default function JarvisChat() {
                             clearCart();
                         }
                     } else {
-                        // Legacy/chat response
-                        speak(data.message);
+                        // Legacy/chat response — always show message string only
+                        const msgText = safeMessage(data);
+                        speak(msgText);
                         setMessages(prev => [
                             ...prev,
                             {
                                 role: "assistant",
-                                content: data.message,
+                                content: msgText,
                                 timestamp: Date.now(),
                             },
                         ]);
@@ -331,8 +351,14 @@ export default function JarvisChat() {
 
     const handleConfirmOrder = useCallback(
         (structured: StructuredResponse) => {
+            if (confirmingRef.current) return; // prevent double click
             if (!structured.items || structured.items.length === 0) return;
-            handleSend("execute_order", structured.items);
+            confirmingRef.current = true;
+            // Add user confirm message directly — do NOT send to LLM
+            setMessages(prev => [...prev, { role: "user", content: "✅ Order Confirm", timestamp: Date.now() }]);
+            handleSend("execute_order", structured.items).then(() => {
+                confirmingRef.current = false;
+            });
         },
         [handleSend]
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme, THEMES } from "@/context/ThemeContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { Palette, Check, X } from "lucide-react";
@@ -9,9 +9,17 @@ export default function FloatingThemePalette() {
   const [isOpen, setIsOpen] = useState(false);
   const { theme: activeTheme, setTheme } = useTheme();
 
+  // Listen for navbar theme button click
+  useEffect(() => {
+    const handler = () => setIsOpen(true);
+    window.addEventListener('open-theme-panel', handler);
+    return () => window.removeEventListener('open-theme-panel', handler);
+  }, []);
+
   return (
     <>
-      <div className="fixed bottom-20 left-4 md:bottom-6 md:left-6 z-40">
+      {/* Floating button — hidden on mobile (navbar has it), visible on desktop */}
+      <div className="fixed bottom-[80px] left-4 md:bottom-6 md:left-6 z-40 hidden md:block">
         <button
           onClick={() => setIsOpen(true)}
           className="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-2xl transition-transform active:scale-90 hover:scale-105"
