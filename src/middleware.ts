@@ -15,6 +15,22 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 
+// Yeh routes GUEST bhi dekh sakta hai (no login):
+const PUBLIC_ROUTES = [
+    "/",           // home/menu
+    "/menu",       // menu page
+    "/login",      // login page
+    "/auth",
+];
+
+// Yeh routes SIRF logged in users ke liye:
+const PROTECTED_ROUTES = [
+    "/orders",     // order history
+    "/wallet",     // wallet
+    "/profile",    // profile
+    "/cart",       // cart checkout
+];
+
 function decodeTokenRole(token: string, secret: string, expectedRole: string): boolean {
     try {
         const decoded = jwt.verify(token, secret) as { role?: string };
@@ -34,7 +50,23 @@ export function middleware(req: NextRequest) {
     response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
     const authHeader = req.headers.get("authorization");
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    let token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+    // Check for auth-token cookie if Bearer token is not present
+    if (!token) {
+        token = req.cookies.get("auth-token")?.value || null;
+    }
+
+    // ─── Guest vs Protected route logic ───
+    const isProtected = PROTECTED_ROUTES.some(
+        route => pathname.startsWith(route)
+    );
+
+    if (isProtected && !token) {
+        return NextResponse.redirect(
+            new URL("/auth?redirect=" + pathname, req.url)
+        );
+    }
 
     // ─── Admin route protection ───
     if (pathname.startsWith("/admin") && pathname !== "/admin") {
@@ -92,12 +124,13 @@ export function middleware(req: NextRequest) {
 
 export const config = {
     matcher: [
-        "/admin/:path*",
-        "/stock/:path*",
-        "/executive/:path*",
-        "/dashboard/:path*",
-        "/api/admin/:path*",
-        "/api/stock/:path*",
-        "/api/executive/:path*",
+        /*
+         * Match all request paths except for the ones starting with:
+         * - api (API routes)
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico (favicon file)
+         */
+        "/((?!api|_next/static|_next/image|favicon.ico).*)",
     ],
 };

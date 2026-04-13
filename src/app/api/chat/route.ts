@@ -153,13 +153,10 @@ Total: ₹${total}
 Order ID: #${orderId}
 
 Generate a short, friendly order confirmation message that:
-1. Greets the student by name
-2. Lists all items with quantities and prices
-3. Shows the total amount
-4. Shows the Order ID #${orderId}
-5. Asks if they want to confirm the order
-6. Mentions the amount will be deducted from their wallet
-Keep it concise and fun with emojis!`;
+1. Lists all items with quantities and prices
+2. Shows the total amount and Order ID #${orderId}
+3. Asks them to confirm the order and mentions the amount will be deducted from their wallet.
+Keep it extremely short and concise! NO long explanations.`;
 
             const chatMessages: ChatMessage[] = [
                 { role: "user", content: "I want to place my order" },
@@ -167,8 +164,25 @@ Keep it concise and fun with emojis!`;
 
             const { response, provider } = await chatWithFallback(chatMessages, systemPrompt);
 
+            // Extract message if it was wrapped in JSON
+            let finalMessage = response;
+            try {
+                let cleanRaw = response.trim();
+                if (cleanRaw.startsWith("```json")) cleanRaw = cleanRaw.replace(/```json/g, "").replace(/```/g, "").trim();
+                else if (cleanRaw.startsWith("```")) cleanRaw = cleanRaw.replace(/```/g, "").trim();
+                
+                const start = cleanRaw.indexOf("{");
+                const end = cleanRaw.lastIndexOf("}");
+                if (start !== -1 && end > start) {
+                    const parsed = JSON.parse(cleanRaw.substring(start, end + 1));
+                    if (parsed.message) finalMessage = parsed.message;
+                }
+            } catch (e) {
+                // Keep original
+            }
+
             return NextResponse.json({
-                message: response,
+                message: finalMessage,
                 provider,
                 orderId,
                 total,
@@ -178,6 +192,13 @@ Keep it concise and fun with emojis!`;
 
         // ── ORDER ENGINE: execute_order action (user confirmed an order) ──
         if (action === "execute_order" && cart && cart.length > 0 && userProfile) {
+            if (!isCanteenOpen) {
+                return NextResponse.json({
+                    status: "ERROR",
+                    message: `Canteen abhi band hai! Khulne ka time hai: ${canteenTiming}. Jab open hogi tab order karna, please.`,
+                });
+            }
+
             const orderId = generateId();
             const total = cart.reduce(
                 (sum: number, item: { unit_price: number; quantity: number }) =>
@@ -375,6 +396,14 @@ Keep it concise and fun with emojis!`;
         } catch (e) {
             console.warn("Failed to natively parse LLM JSON framework fallback to CHAT mode:", e);
             parsedLLMResp = { action: "CHAT", message: response };
+        }
+
+        // ── Block Output if LLM Hallucinates Order While Closed ──
+        if (parsedLLMResp?.action === "ORDER" && !isCanteenOpen) {
+            parsedLLMResp = { 
+                action: "CHAT", 
+                message: `Canteen abhi band hai yaar! Khulne ka time hai: ${canteenTiming}. Abhi order place nahi ho sakta 😔` 
+            };
         }
 
         if (action === "confirm_order" && cart && cart.length > 0) {

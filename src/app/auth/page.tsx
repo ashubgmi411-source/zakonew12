@@ -26,7 +26,8 @@ export default function AuthPage() {
             const checkProfile = async () => {
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists()) {
-                    router.push("/");
+                    const redirectUrl = new URLSearchParams(window.location.search).get("redirect") || "/";
+                    router.push(redirectUrl);
                 } else {
                     setStep("profile");
                 }
@@ -45,7 +46,8 @@ export default function AuthPage() {
 
             const userDoc = await getDoc(doc(db, "users", uid));
             if (userDoc.exists()) {
-                router.push("/");
+                const redirectUrl = new URLSearchParams(window.location.search).get("redirect") || "/";
+                router.push(redirectUrl);
             } else {
                 setStep("profile");
             }
@@ -87,7 +89,8 @@ export default function AuthPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to save profile");
 
-            router.push("/");
+            const redirectUrl = new URLSearchParams(window.location.search).get("redirect") || "/";
+            router.push(redirectUrl);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to save profile");
         }

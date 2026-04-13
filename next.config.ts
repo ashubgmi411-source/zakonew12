@@ -26,6 +26,7 @@ const nextConfig: NextConfig = {
     ],
     unoptimized: true,
   },
+  // @ts-ignore - NextConfig eslint types sometimes clash
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -250,9 +250,16 @@ function ChatPageInner() {
                         </div>
                     )}
 
-                    {messages.map((msg, idx) => (
-                        <ChatBubble key={idx} role={msg.role} content={msg.content} timestamp={msg.timestamp} />
-                    ))}
+                    {messages.map((msg, idx) => {
+                        let displayContent = msg.content;
+                        try {
+                            const parsed = JSON.parse(displayContent);
+                            if (parsed.message) displayContent = parsed.message;
+                        } catch {
+                            // Ignore, not valid JSON
+                        }
+                        return <ChatBubble key={idx} role={msg.role} content={displayContent} timestamp={msg.timestamp} />;
+                    })}
 
                     {/* Confirmation Buttons */}
                     {pendingOrder && !sending && (

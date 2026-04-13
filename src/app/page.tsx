@@ -41,9 +41,7 @@ export default function MenuPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/auth");
-    }
+    // Note: Guest users can see the menu. They are redirected to login only when interacting with cart/orders.
   }, [user, loading, router]);
 
   // Real-time Firestore subscription for menu

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Utensils, ShoppingCart, ClipboardList, Wallet, User, Palette } from "lucide-react";
 
@@ -12,6 +12,7 @@ export default function Navbar() {
     const { user, profile, signOut } = useAuth();
     const { itemCount, isCartOpen, setIsCartOpen } = useCart();
     const pathname = usePathname();
+    const router = useRouter();
     const [mobileOpen, setMobileOpen] = useState(false);
 
     if (pathname?.startsWith("/admin")) return null;
@@ -222,6 +223,15 @@ export default function Navbar() {
                                     )}
                                 </svg>
                             </motion.button>
+                        )}
+
+                        {!user && (
+                             <button
+                               onClick={() => router.push("/auth")}
+                               className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-transform active:scale-95 shadow-md"
+                               style={{ background: "var(--btn-primary)" }}>
+                               Login
+                             </button>
                         )}
                     </div>
                 </div>

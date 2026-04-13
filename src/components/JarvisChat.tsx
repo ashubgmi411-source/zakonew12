@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, Check, X, Mic, Send } from "lucide-react";
+import { Bot, Check, X, Mic, Send, Sparkles, Volume2, VolumeX } from "lucide-react";
 import toast from "react-hot-toast";
 import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
 import { speak } from "@/services/ttsService";
@@ -16,6 +16,8 @@ interface ChatMessage {
     role: "assistant" | "user" | "system";
     content: string;
     timestamp: number;
+    suggestions?: string[];
+    upsell?: { message: string; items: Array<{ id: string; name: string; price: number }> } | null;
     structured?: StructuredResponse | null;
 }
 
@@ -35,6 +37,7 @@ interface StructuredResponse {
     order_id?: string;
     grand_total?: number;
     items?: OrderedItem[];
+    found_items?: OrderedItem[];
 }
 
 export default function JarvisChat() {
@@ -47,14 +50,16 @@ export default function JarvisChat() {
     const [processing, setProcessing] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
     const [confirmOrder, setConfirmOrder] = useState<any>(null);
-    const pendingOrderRef = useRef<any>(null); // prevent double confirm
-    const confirmingRef = useRef(false); // guard against re-entry
+    const [isMuted, setIsMuted] = useState(false);
+    const pendingOrderRef = useRef<any>(null);
+    const confirmingRef = useRef(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Voice input (mobile mic inside chat)
+    // Voice input
     const {
         isListening,
+        isSpeaking,
         transcript: voiceTranscript,
         interimTranscript,
         startListening,
@@ -63,10 +68,9 @@ export default function JarvisChat() {
         onFinalTranscript: (text) => {
             setInput(text);
             handleSend(undefined, undefined, text);
-        }
+        },
     });
 
-    // When voice transcript updates, fill the input (fallback)
     useEffect(() => {
         if (voiceTranscript && !isListening) {
             setInput(voiceTranscript);
@@ -74,21 +78,23 @@ export default function JarvisChat() {
     }, [voiceTranscript, isListening]);
 
     const toggleVoice = () => {
-        if (isListening) {
-            stopListening();
-        } else {
-            startListening();
-        }
+        if (isListening) stopListening();
+        else startListening();
     };
 
+    // Greeting on open
     useEffect(() => {
         if (open && messages.length === 0) {
-            const greeting = getRespectfulGreeting({ name: profile?.name, gender: profile?.gender });
+            const userName = profile?.name?.split(" ")[0] || "Guest";
+            const hour = new Date().getHours();
+            const timeGreeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+            
             setMessages([
                 {
                     role: "assistant",
-                    content: `${greeting}! Main hoon Jarvis — Zayko AI Ordering Engine.\n\nSeedha order bolo, jaise:\n• "6 milk"\n• "2 samosa aur 1 chai"\n• "3 coffee order karo"\n\nMain turant process karunga!`,
+                    content: `${timeGreeting} ${userName}! 👋\nKya order karein aaj?`,
                     timestamp: Date.now(),
+                    suggestions: ["Aaj kya hai?", "Kuch suggest karo", "Wallet balance"],
                 },
             ]);
         }
@@ -99,11 +105,21 @@ export default function JarvisChat() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    // Order Live Status Voice Announcer
+    // Focus input
+    useEffect(() => {
+        if (open) setTimeout(() => inputRef.current?.focus(), 300);
+    }, [open]);
+
+    // Open from Mobile NavBar
+    useEffect(() => {
+        const handler = () => setOpen(true);
+        window.addEventListener("open-jarvis", handler);
+        return () => window.removeEventListener("open-jarvis", handler);
+    }, []);
+
+    // Order status announcements
     useEffect(() => {
         if (!user || !profile) return;
-        
-        // Listen to the most recent active order for this user
         const q = query(
             collection(db, "orders"),
             where("userId", "==", user.uid),
@@ -111,225 +127,166 @@ export default function JarvisChat() {
             orderBy("createdAt", "desc"),
             limit(1)
         );
-
         let previousStatus: string | null = null;
-
         const unsubscribe = onSnapshot(q, (snapshot) => {
             if (snapshot.empty) return;
-            const orderDoc = snapshot.docs[0];
-            const currentStatus = orderDoc.data().status;
-
-            // Only speak if status changed (and we had a previous status to avoid speaking on mount)
-            if (previousStatus && currentStatus !== previousStatus) {
-                if (currentStatus === "confirmed") {
-                    speak("Aapka order confirm ho gaya hai, abhi prepare ho raha hai");
-                } else if (currentStatus === "preparing") {
-                    speak("Aapka order tayar ho raha hai, thoda wait karein");
-                } else if (currentStatus === "ready") {
-                    speak("Aapka order ready hai, please pick up karein");
-                }
+            const currentStatus = snapshot.docs[0].data().status;
+            if (previousStatus && currentStatus !== previousStatus && !isMuted) {
+                const statusMessages: Record<string, string> = {
+                    confirmed: "Aapka order confirm ho gaya hai!",
+                    preparing: "Aapka order tayar ho raha hai, thoda wait karein",
+                    ready: "Aapka order ready hai! Please pick up karein",
+                };
+                if (statusMessages[currentStatus]) speak(statusMessages[currentStatus]);
             }
             previousStatus = currentStatus;
         });
-
         return () => unsubscribe();
-    }, [user, profile, speak]);
+    }, [user, profile, isMuted]);
 
-    // Focus input on open
-    useEffect(() => {
-        if (open) {
-            setTimeout(() => inputRef.current?.focus(), 300);
-        }
-    }, [open]);
-
-    // Handle open from Mobile NavBar
-    useEffect(() => {
-        const handler = () => setOpen(true);
-        window.addEventListener('open-jarvis', handler);
-        return () => window.removeEventListener('open-jarvis', handler);
-    }, []);
-
+    // ─── Confirm Order (from LLM confirmation dialog) ───
     const handleConfirmLLM = async () => {
-        if (confirmingRef.current) return; // prevent double click
+        if (confirmingRef.current) return;
         const order = pendingOrderRef.current || confirmOrder;
         if (!order) return;
-        
+
         confirmingRef.current = true;
-        setShowConfirm(false); // hide immediately
+        setShowConfirm(false);
         setConfirmOrder(null);
-        
-        // Add user confirmation message directly
-        setMessages(prev => [...prev, { role: "user", content: "✅ Haan, Order Confirm Karo", timestamp: Date.now() }]);
-        
-        const execItems = [{
-            item_id: order.itemId,
-            name: order.itemName,
-            quantity: order.quantity,
-            unit_price: order.itemPrice || order.price,
-            total_price: (order.itemPrice || order.price) * order.quantity
-        }];
-        
+
+        setMessages((prev) => [...prev, { role: "user", content: "✅ Haan, Order Confirm Karo", timestamp: Date.now() }]);
+
+        const execItems = [
+            {
+                item_id: order.itemId,
+                name: order.itemName,
+                quantity: order.quantity,
+                unit_price: order.itemPrice || order.price,
+                total_price: (order.itemPrice || order.price) * order.quantity,
+            },
+        ];
+
         await handleSend("execute_order", execItems);
         pendingOrderRef.current = null;
         confirmingRef.current = false;
     };
 
-    const handleSend = useCallback(async (action?: string, orderItems?: OrderedItem[], overrideText?: string) => {
-        const text = overrideText || input.trim();
-        if ((!text && !action) || processing) return;
+    // ─── Main Send Handler ───
+    const handleSend = useCallback(
+        async (action?: string, orderItems?: OrderedItem[], overrideText?: string) => {
+            const text = overrideText || input.trim();
+            if ((!text && !action) || processing) return;
 
-        const userMsg = text || (action === "execute_order" ? "✅ Order Confirm" : action === "place_order" ? "Place Order" : "");
-        if (userMsg && action !== "execute_order") {
-            setMessages(prev => [...prev, { role: "user", content: userMsg, timestamp: Date.now() }]);
-        }
+            const userMsg = text || (action === "execute_order" ? "✅ Order Confirm" : "");
+            if (userMsg && action !== "execute_order") {
+                setMessages((prev) => [...prev, { role: "user", content: userMsg, timestamp: Date.now() }]);
+            }
 
-        setInput("");
-        setProcessing(true);
+            setInput("");
+            setProcessing(true);
 
-        try {
-            const token = await getIdToken();
-            const actionUrl = action === "execute_order" ? "/api/chat" : "/api/jarvis";
-            
-            const res = await fetch(actionUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    messages: messages.concat(
-                        userMsg && action !== "execute_order"
-                            ? [{ role: "user" as const, content: userMsg, timestamp: Date.now() }]
-                            : []
-                    ),
-                    cart: action === "execute_order" ? orderItems : items,
-                    userProfile: profile,
-                    action: action || "chat",
-                }),
-            });
+            try {
+                const token = await getIdToken();
 
-            const data = await res.json();
-
-            // Always parse only the message
-            const getSafeMsg = (d: any) => {
-                if (typeof d === "string") return d;
-                if (d.message && typeof d.message === "string") return d.message;
-                return "Kuch samajh nahi aara, sorry.";
-            };
-            const safeMsg = getSafeMsg(data);
-
-            if (res.ok) {
-                if (data.action === "ORDER") {
-                    const orderData = {
-                        itemId: data.itemId,
-                        itemName: data.itemName,
-                        quantity: data.quantity,
-                        price: data.itemPrice || data.price || 0,
-                        message: safeMsg
-                    };
-                    setConfirmOrder(orderData);
-                    pendingOrderRef.current = orderData;
-                    setShowConfirm(true);
-                    
-                    speak(safeMsg);
-                    setMessages(prev => [
-                        ...prev,
-                        { role: "assistant", content: safeMsg, timestamp: Date.now() }
-                    ]);
-                } 
-                else if (action === "execute_order" || data.action === "order_placed" || data.status === "ORDER_PLACED") {
-                    speak(safeMsg);
-                    setMessages(prev => [
-                        ...prev,
-                        { role: "assistant", content: safeMsg, timestamp: Date.now() }
-                    ]);
-                    toast.success("Order placed successfully! 🎉");
-                    clearCart();
-                }
-                else {
-                    // CHAT or UNAVAILABLE
-                    speak(safeMsg);
-                    setMessages(prev => [
-                        ...prev,
-                        { role: "assistant", content: safeMsg, timestamp: Date.now() }
-                    ]);
-                }
-            } else {
-                speak("Sorry, server side kuch issue hai");
-                toast.error(data.message || "AI is taking a break...");
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        role: "assistant",
-                        content: "Sorry, server side kuch issue hai. Kripya bad mein try karein! 🙏",
-                        timestamp: Date.now(),
+                // Use unified /api/assistant for everything except execute_order
+                // which can also go through /api/assistant
+                const res = await fetch("/api/assistant", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
                     },
-                ]);
-            }
-        } catch (err) {
-            console.error("Jarvis Error:", err);
-            toast.error("Connection lost");
-            speak("Sorry, network error aa gaya.");
-        } finally {
-            setProcessing(false);
-        }
-    }, [input, processing, messages, items, profile, getIdToken, clearCart, speak]);
+                    body: JSON.stringify({
+                        messages: messages.concat(
+                            userMsg && action !== "execute_order"
+                                ? [{ role: "user" as const, content: userMsg, timestamp: Date.now() }]
+                                : []
+                        ),
+                        cart: action === "execute_order" ? orderItems : items,
+                        userProfile: profile,
+                        action: action || "chat",
+                    }),
+                });
 
-    /** Build a human-readable display string from structured JSON */
-    function buildStructuredDisplay(data: StructuredResponse): string {
-        switch (data.status) {
-            case "ORDER_CONFIRMED": {
-                const lines = ["🛒 **Order Summary**\n"];
-                for (const item of data.items || []) {
-                    lines.push(`• ${item.name} × ${item.quantity} — ₹${item.total_price}`);
-                }
-                lines.push(`\n💰 Grand Total: ₹${data.grand_total}`);
-                lines.push("\nConfirm karna hai? 👇");
-                return lines.join("\n");
-            }
-            case "ITEM_NOT_FOUND": {
-                if (data.found_items && data.found_items.length > 0) {
-                    const lines = [`⚠️ ${data.message}\n`, "🛒 **Successfully Found:**"];
-                    for (const item of data.found_items) {
-                        lines.push(`• ${item.name} × ${item.quantity}`);
-                    }
-                    lines.push("\nConfirm baaki items? (Type 'yes' or use button)");
-                    return lines.join("\n");
-                }
-                return `⚠️ ${data.message}`;
-            }
-            case "STOCK_ERROR": {
-                if (data.found_items && data.found_items.length > 0) {
-                    const lines = [`📦 ${data.message}\n`, "🛒 **Successfully Found:**"];
-                    for (const item of data.found_items) {
-                        lines.push(`• ${item.name} × ${item.quantity}`);
-                    }
-                    lines.push("\nConfirm baaki items? (Type 'yes' or use button)");
-                    return lines.join("\n");
-                }
-                return `📦 ${data.message}`;
-            }
-            case "ORDER_PLACED":
-                return data.message || "✅ Order placed!";
-            case "ORDER_FAILED":
-                return data.message || "❌ Order failed!";
-            default:
-                return data.message || "...";
-        }
-    }
+                const data = await res.json();
 
-    const handleConfirmOrder = useCallback(
-        (structured: StructuredResponse) => {
-            if (confirmingRef.current) return; // prevent double click
-            if (!structured.items || structured.items.length === 0) return;
-            confirmingRef.current = true;
-            // Add user confirm message directly — do NOT send to LLM
-            setMessages(prev => [...prev, { role: "user", content: "✅ Order Confirm", timestamp: Date.now() }]);
-            handleSend("execute_order", structured.items).then(() => {
-                confirmingRef.current = false;
-            });
+                const getSafeMsg = (d: any) => {
+                    if (typeof d === "string") return d;
+                    if (d.message && typeof d.message === "string") return d.message;
+                    return "Kuch samajh nahi aara, sorry.";
+                };
+                const safeMsg = getSafeMsg(data);
+
+                if (res.ok) {
+                    if (data.action === "ORDER") {
+                        const orderData = {
+                            itemId: data.itemId,
+                            itemName: data.itemName,
+                            quantity: data.quantity,
+                            price: data.itemPrice || data.price || 0,
+                            message: safeMsg,
+                        };
+                        setConfirmOrder(orderData);
+                        pendingOrderRef.current = orderData;
+                        setShowConfirm(true);
+
+                        if (!isMuted) speak(data.voiceText || safeMsg);
+                        setMessages((prev) => [
+                            ...prev,
+                            {
+                                role: "assistant",
+                                content: safeMsg,
+                                timestamp: Date.now(),
+                                suggestions: data.suggestions,
+                                upsell: data.upsell,
+                            },
+                        ]);
+                    } else if (
+                        action === "execute_order" ||
+                        data.action === "order_placed" ||
+                        data.status === "ORDER_PLACED"
+                    ) {
+                        if (!isMuted) speak(data.voiceText || safeMsg);
+                        setMessages((prev) => [
+                            ...prev,
+                            { role: "assistant", content: safeMsg, timestamp: Date.now() },
+                        ]);
+                        toast.success("Order placed! 🎉");
+                        clearCart();
+                    } else {
+                        // CHAT, RECOMMENDATION, WALLET, MENU, UNAVAILABLE
+                        if (!isMuted) speak(data.voiceText || safeMsg);
+                        setMessages((prev) => [
+                            ...prev,
+                            {
+                                role: "assistant",
+                                content: safeMsg,
+                                timestamp: Date.now(),
+                                suggestions: data.suggestions,
+                            },
+                        ]);
+                    }
+                } else {
+                    if (!isMuted) speak(data.message || "Sorry, server side kuch issue hai");
+                    toast.error(data.message || "AI is taking a break...");
+                    setMessages((prev) => [
+                        ...prev,
+                        {
+                            role: "assistant",
+                            content: data.message || "Sorry, server side kuch issue hai. Kripya dobara try karein! 🙏",
+                            timestamp: Date.now(),
+                        },
+                    ]);
+                }
+            } catch (err) {
+                console.error("Jarvis Error:", err);
+                toast.error("Connection lost");
+                if (!isMuted) speak("Sorry, network error aa gaya.");
+            } finally {
+                setProcessing(false);
+            }
         },
-        [handleSend]
+        [input, processing, messages, items, profile, getIdToken, clearCart, isMuted]
     );
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -337,6 +294,12 @@ export default function JarvisChat() {
             e.preventDefault();
             handleSend();
         }
+    };
+
+    // ─── Quick suggestion chip click ───
+    const handleSuggestionClick = (text: string) => {
+        setInput(text);
+        handleSend(undefined, undefined, text);
     };
 
     if (!user) return null;
@@ -351,7 +314,7 @@ export default function JarvisChat() {
                 onClick={() => setOpen(!open)}
                 className="hidden md:flex fixed bottom-6 right-6 z-50 w-12 h-12 md:w-16 md:h-16 rounded-full items-center justify-center text-xl md:text-3xl border-2 border-gold-400/30 breathing-orb"
                 style={{
-                    background: 'radial-gradient(circle at 35% 35%, #fbbf24, #d4a017, #92400e)',
+                    background: "radial-gradient(circle at 35% 35%, #fbbf24, #d4a017, #92400e)",
                 }}
                 whileTap={{ scale: 0.85 }}
                 initial={{ scale: 0, opacity: 0 }}
@@ -363,11 +326,12 @@ export default function JarvisChat() {
                 ) : (
                     <span className="text-2xl drop-shadow-lg">🤖</span>
                 )}
-                {/* Pulsing ring behind orb */}
                 {!open && (
-                    <span className="absolute inset-0 rounded-full border-2 border-gold-400/40 animate-ping" style={{ animationDuration: '3s' }} />
+                    <span
+                        className="absolute inset-0 rounded-full border-2 border-gold-400/40 animate-ping"
+                        style={{ animationDuration: "3s" }}
+                    />
                 )}
-                {/* Notification Badge */}
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-zayko-900 shadow-lg shadow-emerald-500/30">
                     <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
                 </div>
@@ -388,17 +352,37 @@ export default function JarvisChat() {
                         <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
                             <div className="flex items-center gap-3">
                                 <div className="relative">
-                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: 'var(--btn-primary)' }}>
+                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: "var(--btn-primary)" }}>
                                         <Bot className="w-6 h-6 text-white" />
                                     </div>
                                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 rounded-full" style={{ borderColor: "var(--bg-elevated)" }}></span>
                                 </div>
                                 <div>
-                                    <h3 className="font-display font-black text-base tracking-tight italic" style={{ color: "var(--text-primary)" }}>JARVIS <span className="text-[10px] px-1.5 py-0.5 rounded ml-1 not-italic" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>ENGINE</span></h3>
-                                    <p className="text-[10px] font-bold uppercase tracking-widest leading-none mt-1" style={{ color: "var(--accent)" }}>Order Engine Active</p>
+                                    <h3 className="font-display font-black text-base tracking-tight italic" style={{ color: "var(--text-primary)" }}>
+                                        JARVIS{" "}
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded ml-1 not-italic" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>
+                                            v2.0
+                                        </span>
+                                    </h3>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest leading-none mt-1" style={{ color: "var(--accent)" }}>
+                                        {isSpeaking ? "Speaking..." : processing ? "Thinking..." : "Smart Agent Active"}
+                                    </p>
                                 </div>
                             </div>
-                            <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90" style={{ color: "var(--text-secondary)", background: "var(--bg-input)" }}>✕</button>
+                            <div className="flex items-center gap-2">
+                                {/* Mute toggle */}
+                                <button
+                                    onClick={() => setIsMuted(!isMuted)}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90"
+                                    style={{ color: "var(--text-secondary)", background: "var(--bg-input)" }}
+                                    title={isMuted ? "Unmute" : "Mute"}
+                                >
+                                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                                </button>
+                                <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90" style={{ color: "var(--text-secondary)", background: "var(--bg-input)" }}>
+                                    ✕
+                                </button>
+                            </div>
                         </div>
 
                         {/* Chat Messages */}
@@ -412,32 +396,105 @@ export default function JarvisChat() {
                                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                                 >
                                     <div className="max-w-[85%]">
-                                        <div 
-                                            className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ${msg.role === "user" ? "font-bold rounded-tr-sm" : "rounded-tl-sm"}`} 
+                                        <div
+                                            className={`px-4 py-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ${msg.role === "user" ? "font-bold rounded-tr-sm" : "rounded-tl-sm"}`}
                                             style={
-                                                msg.role === "user" 
-                                                    ? { background: "var(--btn-primary)", color: "#FFF" } 
+                                                msg.role === "user"
+                                                    ? { background: "var(--btn-primary)", color: "#FFF" }
                                                     : { background: "var(--bg-elevated)", color: "var(--text-primary)", border: "1px solid var(--border)" }
                                             }
                                         >
-                                            {msg.content.split("\n").map((line, idx) => (
-                                                <p key={idx} className={idx > 0 ? "mt-1" : ""}>{line}</p>
-                                            ))}
+                                            {(() => {
+                                                let displayContent = msg.content;
+                                                try {
+                                                    const parsed = JSON.parse(displayContent);
+                                                    if (parsed.message) displayContent = parsed.message;
+                                                } catch {
+                                                    // Not JSON
+                                                }
+                                                return displayContent.split("\n").map((line, idx) => (
+                                                    <p key={idx} className={idx > 0 ? "mt-1" : ""}>
+                                                        {line}
+                                                    </p>
+                                                ));
+                                            })()}
                                         </div>
 
-                                        {/* Confirm / Cancel buttons for ORDER_CONFIRMED */}
+                                        {/* ── Suggestion Chips ── */}
+                                        {msg.role === "assistant" && msg.suggestions && msg.suggestions.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 mt-2">
+                                                {msg.suggestions.map((sug, si) => (
+                                                    <motion.button
+                                                        key={si}
+                                                        initial={{ opacity: 0, scale: 0.8 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ delay: si * 0.05 }}
+                                                        onClick={() => handleSuggestionClick(sug)}
+                                                        className="px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all active:scale-95 hover:shadow-md flex items-center gap-1"
+                                                        style={{
+                                                            background: "var(--bg-input)",
+                                                            borderColor: "var(--border)",
+                                                            color: "var(--accent)",
+                                                        }}
+                                                    >
+                                                        <Sparkles className="w-3 h-3" />
+                                                        {sug}
+                                                    </motion.button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* ── Upsell Card ── */}
+                                        {msg.role === "assistant" && msg.upsell && msg.upsell.items.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.2 }}
+                                                className="mt-2 p-3 rounded-xl border"
+                                                style={{ background: "var(--bg-input)", borderColor: "var(--border)" }}
+                                            >
+                                                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: "var(--accent)" }}>
+                                                    💡 Combo Suggestion
+                                                </p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {msg.upsell.items.map((item, ui) => (
+                                                        <button
+                                                            key={ui}
+                                                            onClick={() => handleSuggestionClick(`${item.name} bhi add karo`)}
+                                                            className="px-2.5 py-1.5 rounded-xl text-[11px] font-semibold border transition-all active:scale-95"
+                                                            style={{
+                                                                background: "var(--bg-elevated)",
+                                                                borderColor: "var(--border)",
+                                                                color: "var(--text-primary)",
+                                                            }}
+                                                        >
+                                                            + {item.name} ₹{item.price}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Confirm / Cancel for ORDER_CONFIRMED */}
                                         {msg.structured?.status === "ORDER_CONFIRMED" && (
                                             <div className="flex gap-2 mt-2">
                                                 <button
-                                                    onClick={() => handleConfirmOrder(msg.structured!)}
+                                                    onClick={() => {
+                                                        if (confirmingRef.current || !msg.structured?.items?.length) return;
+                                                        confirmingRef.current = true;
+                                                        setMessages((prev) => [...prev, { role: "user", content: "✅ Order Confirm", timestamp: Date.now() }]);
+                                                        handleSend("execute_order", msg.structured!.items).then(() => {
+                                                            confirmingRef.current = false;
+                                                        });
+                                                    }}
                                                     disabled={processing}
                                                     className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-xs font-black uppercase tracking-wider hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                                                 >
-                                                    <Check className="w-4 h-4" strokeWidth={3} /> Confirm Order
+                                                    <Check className="w-4 h-4" strokeWidth={3} /> Confirm
                                                 </button>
                                                 <button
                                                     onClick={() =>
-                                                        setMessages(prev => [
+                                                        setMessages((prev) => [
                                                             ...prev,
                                                             { role: "assistant", content: "Order cancel kar diya. Kuch aur chahiye?", timestamp: Date.now() },
                                                         ])
@@ -457,63 +514,111 @@ export default function JarvisChat() {
                                 <motion.div
                                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    className="rounded-2xl p-4 my-2 border border-white/10 bg-zayko-800/80 backdrop-blur-md shadow-xl"
+                                    className="rounded-2xl p-4 my-2 border border-white/10 backdrop-blur-md shadow-xl"
+                                    style={{ background: "var(--bg-elevated)" }}
                                 >
                                     <div className="flex items-center gap-2 mb-2">
                                         <Check className="w-5 h-5 text-emerald-400" />
-                                        <p className="font-display font-bold text-white text-base">Order Confirm Karo</p>
+                                        <p className="font-display font-bold text-base" style={{ color: "var(--text-primary)" }}>
+                                            Order Confirm Karo
+                                        </p>
                                     </div>
-                                    <p className="text-sm mb-4 text-zayko-300 font-medium">
-                                        {confirmOrder.itemName} x{confirmOrder.quantity} — <span className="text-gold-400 font-bold">₹{confirmOrder.price * confirmOrder.quantity}</span>
+                                    <p className="text-sm mb-4 font-medium" style={{ color: "var(--text-secondary)" }}>
+                                        {confirmOrder.itemName} x{confirmOrder.quantity} —{" "}
+                                        <span style={{ color: "var(--accent)" }} className="font-bold">
+                                            ₹{confirmOrder.price * confirmOrder.quantity}
+                                        </span>
                                     </p>
                                     <div className="flex gap-2">
-                                        <button onClick={handleConfirmLLM}
+                                        <button
+                                            onClick={handleConfirmLLM}
                                             disabled={processing}
-                                            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-xs font-black uppercase tracking-wider hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all disabled:opacity-50">
+                                            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 text-white text-xs font-black uppercase tracking-wider hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] active:scale-95 transition-all disabled:opacity-50"
+                                        >
                                             ✅ Haan, Order Karo
                                         </button>
-                                        <button onClick={() => {
-                                            setShowConfirm(false);
-                                            setMessages(prev => [...prev, { role: "assistant", content: "Order cancel kar diya. Kuch aur chahiye?", timestamp: Date.now() }]);
-                                        }}
+                                        <button
+                                            onClick={() => {
+                                                setShowConfirm(false);
+                                                setMessages((prev) => [...prev, { role: "assistant", content: "Order cancel kar diya 👍 Aur kuch chahiye?", timestamp: Date.now() }]);
+                                            }}
                                             disabled={processing}
-                                            className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-zayko-300 text-xs font-bold uppercase tracking-wider hover:bg-white/10 active:scale-95 transition-all">
-                                            ❌ Nahi, Cancel
+                                            className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wider hover:bg-white/10 active:scale-95 transition-all"
+                                            style={{ color: "var(--text-secondary)" }}
+                                        >
+                                            ❌ Cancel
                                         </button>
                                     </div>
                                 </motion.div>
                             )}
 
+                            {/* Processing indicator */}
                             {processing && (
                                 <div className="flex justify-start">
-                                    <div className="bg-white/5 border border-white/[0.08] px-4 py-3 rounded-2xl rounded-tl-sm">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                                            <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                                            <span className="w-2 h-2 bg-gold-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                                    <div className="px-4 py-3 rounded-2xl rounded-tl-sm" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1">
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: "0ms" }}></span>
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: "150ms" }}></span>
+                                                <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: "300ms" }}></span>
+                                            </div>
+                                            <span className="text-[10px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+                                                Jarvis soch raha hai...
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
                             )}
+
+                            {/* Speaking indicator */}
+                            <AnimatePresence>
+                                {isSpeaking && !isMuted && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="flex justify-start"
+                                    >
+                                        <div className="flex items-center gap-2 px-4 py-2 rounded-2xl" style={{ background: "var(--accent-glow)" }}>
+                                            <div className="flex items-end gap-0.5 h-4">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <motion.div
+                                                        key={i}
+                                                        className="w-1 rounded-full"
+                                                        style={{ background: "var(--accent)" }}
+                                                        animate={{ height: ["4px", `${12 + Math.random() * 8}px`, "4px"] }}
+                                                        transition={{ repeat: Infinity, duration: 0.6 + Math.random() * 0.4, delay: i * 0.1 }}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className="text-[10px] font-bold" style={{ color: "var(--accent)" }}>
+                                                Speaking...
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
                             <div ref={messagesEndRef} />
                         </div>
 
                         {/* Input Area */}
-                        <div className="p-4 bg-zayko-800/50 border-t border-white/[0.06] relative">
-                            {/* Live Transcript Display */}
+                        <div className="p-4 border-t relative" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+                            {/* Live Transcript */}
                             <AnimatePresence>
                                 {isListening && interimTranscript && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -10 }}
-                                        className="absolute -top-12 left-4 right-4 bg-zayko-950/80 backdrop-blur-md rounded-xl p-3 border border-white/10 shadow-lg text-sm text-gold-200 font-medium z-10 italic"
+                                        className="absolute -top-12 left-4 right-4 rounded-xl p-3 border shadow-lg text-sm font-medium z-10 italic"
+                                        style={{ background: "var(--bg-primary)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                                     >
                                         <div className="flex items-center gap-2">
                                             <div className="flex gap-1">
-                                                <span className="w-1 h-3 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-                                                <span className="w-1 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-                                                <span className="w-1 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                                                <span className="w-1 h-3 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: "0ms" }} />
+                                                <span className="w-1 h-4 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: "150ms" }} />
+                                                <span className="w-1 h-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: "300ms" }} />
                                             </div>
                                             <span className="truncate">{interimTranscript}</span>
                                         </div>
@@ -526,8 +631,8 @@ export default function JarvisChat() {
                                 <div className="relative">
                                     {isListening && (
                                         <>
-                                            <span className="absolute inset-0 rounded-xl bg-red-500/40 animate-ping" style={{ animationDuration: '2s' }} />
-                                            <span className="absolute inset-[-4px] rounded-2xl border-2 border-red-500/30 animate-pulse" style={{ animationDuration: '1.5s' }} />
+                                            <span className="absolute inset-0 rounded-xl bg-red-500/40 animate-ping" style={{ animationDuration: "2s" }} />
+                                            <span className="absolute inset-[-4px] rounded-2xl border-2 border-red-500/30 animate-pulse" style={{ animationDuration: "1.5s" }} />
                                         </>
                                     )}
                                     <button
@@ -535,18 +640,22 @@ export default function JarvisChat() {
                                         className={`relative z-10 flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-md ${
                                             isListening
                                                 ? "bg-gradient-to-br from-red-500 to-red-600 text-white shadow-red-500/50"
-                                                : "bg-white/5 border border-white/[0.1] text-zayko-400 hover:text-white hover:bg-white/10"
+                                                : ""
                                         }`}
+                                        style={
+                                            !isListening
+                                                ? { background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-secondary)" }
+                                                : undefined
+                                        }
                                         title={isListening ? "Stop listening" : "Speak your order"}
                                     >
                                         {isListening ? (
-                                            <motion.div
-                                                animate={{ scale: [1, 1.2, 1] }}
-                                                transition={{ repeat: Infinity, duration: 1.5 }}
-                                            >
+                                            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity, duration: 1.5 }}>
                                                 <Mic className="w-5 h-5 text-white" />
                                             </motion.div>
-                                        ) : <Mic className="w-5 h-5 text-current" />}
+                                        ) : (
+                                            <Mic className="w-5 h-5" />
+                                        )}
                                     </button>
                                 </div>
 
@@ -557,22 +666,28 @@ export default function JarvisChat() {
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         onKeyDown={handleKeyDown}
-                                        placeholder={isListening ? "Listening..." : "Type or tap mic to speak..."}
-                                        className="w-full bg-white/5 border border-white/[0.1] rounded-2xl py-4 pl-5 pr-14 text-white text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/30 focus:border-gold-400/20 focus:shadow-[0_0_20px_rgba(251,191,36,0.1)] transition-all placeholder:text-zayko-600 font-medium"
+                                        placeholder={isListening ? "Listening..." : "Bolo ya type karo..."}
+                                        className="w-full rounded-2xl py-4 pl-5 pr-14 text-sm focus:outline-none transition-all font-medium"
+                                        style={{
+                                            background: "var(--bg-input)",
+                                            border: "1px solid var(--border)",
+                                            color: "var(--text-primary)",
+                                        }}
                                         disabled={processing || isListening}
                                     />
                                     <button
                                         onClick={() => handleSend()}
                                         disabled={processing || !input.trim()}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-gold-500 text-zayko-900 flex items-center justify-center transition-all active:scale-85 disabled:opacity-30 disabled:grayscale shadow-lg shadow-gold-500/20"
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-85 disabled:opacity-30 disabled:grayscale shadow-lg"
+                                        style={{ background: "var(--btn-primary)", color: "#FFF" }}
                                     >
-                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" />
-                                        </svg>
+                                        <Send className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
-                            <p className="text-[9px] text-center text-zayko-600 mt-3 font-black uppercase tracking-[0.2em]">Type or Voice · Powered by Zayko AI</p>
+                            <p className="text-[9px] text-center mt-3 font-black uppercase tracking-[0.2em]" style={{ color: "var(--text-secondary)" }}>
+                                Voice · Text · AI-Powered · Zayko v2.0
+                            </p>
                         </div>
                     </motion.div>
                 )}

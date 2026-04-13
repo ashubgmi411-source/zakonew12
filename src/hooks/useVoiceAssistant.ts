@@ -70,6 +70,12 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
 
     const recognitionRef = useRef<any>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    
+    // Keep onFinalTranscript fresh without triggering re-initialization
+    const onFinalTranscriptRef = useRef(onFinalTranscript);
+    useEffect(() => {
+        onFinalTranscriptRef.current = onFinalTranscript;
+    }, [onFinalTranscript]);
 
     // ── Initialize recognition ──
     useEffect(() => {
@@ -84,7 +90,7 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
         recognition.interimResults = true; // Enable interim results
-        recognition.lang = "hi-IN"; // Hindi + English (Hinglish)
+        recognition.lang = "en-IN"; // English/Hinglish priority over purely Devanagari Hindi
         recognition.maxAlternatives = 1;
 
         recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -107,8 +113,8 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
                 setTranscript(finalStr);
                 setInterimTranscript("");
                 setIsListening(false);
-                if (onFinalTranscript) {
-                    onFinalTranscript(finalStr);
+                if (onFinalTranscriptRef.current) {
+                    onFinalTranscriptRef.current(finalStr);
                 }
             }
         };

@@ -64,6 +64,51 @@ export default function JarvisAssistant() {
         }
     }, [user, profile, speak]);
 
+    // ── Auto Announce Order Preparation ──
+    useEffect(() => {
+        if (!user) return;
+        
+        let unsubscribeFunc: (() => void) | undefined;
+        
+        // Dynamic import to avoid moving top-level imports
+        import("firebase/firestore").then(({ collection, query, where, onSnapshot }) => {
+            import("@/lib/firebase").then(({ db }) => {
+                const q = query(
+                    collection(db, "orders"),
+                    where("userId", "==", user.uid)
+                );
+                
+                unsubscribeFunc = onSnapshot(q, (snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === "added" || change.type === "modified") {
+                            const data = change.doc.data();
+                            const prepTime = data.prepTime;
+                            
+                            if (data.status === "preparing" && prepTime) {
+                                const announcementKey = `prep-${change.doc.id}-${prepTime}`;
+                                const hasAnnounced = sessionStorage.getItem(announcementKey);
+                                
+                                // Only announce if created in the last 12 hours to avoid ancient stuck orders
+                                const createdTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
+                                const isRecent = (Date.now() - createdTime) < 12 * 60 * 60 * 1000;
+                                
+                                if (!hasAnnounced && isRecent) {
+                                    sessionStorage.setItem(announcementKey, "true");
+                                    speak(`Aapka order banne me ${prepTime} minute lag rahe hain.`);
+                                    toast.success(`Preparation time: ${prepTime} mins`);
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+        });
+        
+        return () => {
+            if (unsubscribeFunc) unsubscribeFunc();
+        };
+    }, [user, speak]);
+
     // ── Process Transcript when listening stops ──
     const processTranscript = useCallback(async (text: string) => {
         if (!text.trim()) return;

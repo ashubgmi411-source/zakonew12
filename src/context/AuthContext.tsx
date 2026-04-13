@@ -12,6 +12,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, Rea
 import { auth, db } from "@/lib/firebase";
 import {
     onAuthStateChanged,
+    onIdTokenChanged,
     User,
     signOut as firebaseSignOut,
 } from "firebase/auth";
@@ -85,8 +86,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [user]);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
             setUser(firebaseUser);
+            if (firebaseUser) {
+                const token = await firebaseUser.getIdToken();
+                document.cookie = `auth-token=${token}; path=/; max-age=3600; SameSite=Strict`;
+            } else {
+                document.cookie = `auth-token=; path=/; max-age=0; SameSite=Strict`;
+            }
             setLoading(false);
         });
         return () => unsubscribe();

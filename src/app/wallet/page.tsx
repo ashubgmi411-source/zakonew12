@@ -149,7 +149,7 @@ export default function WalletPage() {
 
     if (loading || txnLoading) {
         return (
-            <div className="min-h-screen bg-zayko-900 flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-gold-400 border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
@@ -158,9 +158,9 @@ export default function WalletPage() {
     const balance = profile?.walletBalance || 0;
 
     return (
-        <div className="min-h-screen bg-zayko-900 pb-28 md:pb-24">
+        <div className="min-h-screen bg-[var(--bg-primary)] pb-28 md:pb-24 text-[var(--text-primary)]">
             {/* Header / Balance Card */}
-            <div className="bg-gradient-to-br from-zayko-800 to-zayko-900 border-b border-white/[0.06] pt-12 pb-12 px-6 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-[var(--bg-elevated)] to-[var(--bg-primary)] border-b border-white/[0.06] pt-12 pb-12 px-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-gold-400/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl opacity-50"></div>
                 <div className="max-w-xl mx-auto text-center relative z-10">
                     <motion.p
@@ -192,7 +192,7 @@ export default function WalletPage() {
             </div>
 
             {/* Sub-navigation Tabs */}
-            <div className="sticky top-0 z-40 bg-zayko-900/80 backdrop-blur-xl border-b border-white/[0.06] px-4">
+            <div className="sticky top-0 z-40 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-white/[0.06] px-4">
                 <div className="max-w-xl mx-auto flex">
                     {[
                         { id: "history", label: "History", icon: "📊" },
@@ -224,8 +224,8 @@ export default function WalletPage() {
                             exit={{ opacity: 0, y: -10 }}
                             className="space-y-6"
                         >
-                            <div className="bg-zayko-800/40 border border-white/[0.06] p-6 rounded-3xl">
-                                <h3 className="text-sm font-bold text-white mb-4">Quick Recharge</h3>
+                            <div className="bg-[var(--bg-elevated)]/40 border border-white/[0.06] p-6 rounded-3xl">
+                                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Quick Recharge</h3>
                                 <div className="grid grid-cols-2 gap-3 mb-6">
                                     {[100, 200, 500, 1000].map((amt) => (
                                         <button
@@ -270,8 +270,8 @@ export default function WalletPage() {
                             exit={{ opacity: 0, y: -10 }}
                             className="space-y-6"
                         >
-                            <div className="bg-zayko-800/40 border border-white/[0.06] p-6 rounded-3xl">
-                                <h3 className="text-sm font-bold text-white mb-4">Transfer to Student</h3>
+                            <div className="bg-[var(--bg-elevated)]/40 border border-white/[0.06] p-6 rounded-3xl">
+                                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Transfer to Student</h3>
                                 <div className="space-y-4">
                                     <div>
                                         <label className="text-[10px] text-zayko-500 font-black uppercase tracking-widest mb-2 block">Recipient Unique Code</label>
@@ -370,7 +370,7 @@ export default function WalletPage() {
                                 </div>
                             ) : (
                                 transactions.map((txn) => (
-                                    <div key={txn.id} className="bg-zayko-800/40 border border-white/[0.06] p-4 rounded-2xl flex items-center justify-between hover:bg-zayko-800/60 transition-all">
+                                    <div key={txn.id} className="bg-[var(--bg-elevated)]/40 border border-white/[0.06] p-4 rounded-2xl flex items-center justify-between hover:bg-[var(--bg-elevated)]/60 transition-all">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-white/[0.03] border border-white/[0.05]`}>
                                                 {txn.type === "topup" || txn.type === "credit" ? "💳" : txn.type === "refund" ? "🔄" : txn.type === "transfer" ? "💸" : "🍱"}
