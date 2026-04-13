@@ -31,30 +31,34 @@ interface SpeechRecognitionErrorEvent extends Event {
 
 // ── Helper: get a female voice from browser synthesis ──
 function getFemaleVoice(): SpeechSynthesisVoice | null {
-    const voices = window.speechSynthesis?.getVoices() || [];
+    const voices = typeof window !== "undefined" && window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    if (!voices || voices.length === 0) return null;
 
-    // First priority: Indian Hindi/English female voices
-    const indianPreferred = voices.filter(v =>
-        (v.lang.includes("in") || v.lang.includes("IN")) &&
-        (v.name.includes("Female") || v.name.includes("Google हिन्दी") || v.name.includes("Neerja") || v.name.includes("Heera"))
-    );
-    if (indianPreferred.length > 0) return indianPreferred[0];
+    // 1. Android Specific Female Voices (hie-local and hic-local are usually female)
+    const androidFemale = voices.find(v => v.lang.toLowerCase() === "hi-in" && (v.name.includes("hie-local") || v.name.includes("hic-local")));
+    if (androidFemale) return androidFemale;
 
-    // Second priority: Any Indian voice
-    const indianAny = voices.find(v => v.lang.includes("in") || v.lang.includes("IN"));
-    if (indianAny) return indianAny;
-
-    // Third priority: Google UK / US Female
-    const preferred = [
-        "Google UK English Female",
-        "Google US English",
-        "Microsoft Zira",
-        "Samantha",
-    ];
-    for (const name of preferred) {
-        const v = voices.find((v) => v.name.includes(name));
-        if (v) return v;
+    // 2. iOS/Desktop specific known female names for Hindi
+    const specificNames = ["Google हिन्दी", "Lekha", "Veena", "Aditi", "Neerja", "Heera"];
+    for (const name of specificNames) {
+        const match = voices.find(v => v.name.includes(name));
+        if (match) return match;
     }
+
+    // 3. Any voice with "Female" in the name for Indian languages
+    const femaleIN = voices.find(v => 
+        (v.lang.toLowerCase().includes("in") || v.lang.toLowerCase().includes("hi")) &&
+        v.name.toLowerCase().includes("female")
+    );
+    if (femaleIN) return femaleIN;
+
+    // 4. Any direct Hindi voice (even if male, it's better than English gibberish)
+    const anyHindi = voices.find(v => v.lang === "hi-IN" || v.lang === "hi_IN" || v.lang === "hi-in");
+    if (anyHindi) return anyHindi;
+
+    // 5. Any language from India (fallback)
+    const anyIN = voices.find(v => v.lang.includes("in") || v.lang.includes("IN"));
+    if (anyIN) return anyIN;
 
     return voices[0] || null;
 }
@@ -147,8 +151,17 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
             console.warn("SpeechRecognition not supported");
             return;
         }
-        // Cancel any ongoing speech
-        window.speechSynthesis?.cancel();
+
+        // --- MOBILE AUDIO UNLOCK HACK ---
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            // Speak a silent utterance to unlock audio context on iOS/Android immediately upon user click
+            const unlockUtterance = new SpeechSynthesisUtterance("");
+            unlockUtterance.volume = 0;
+            unlockUtterance.rate = 10;
+            window.speechSynthesis.speak(unlockUtterance);
+        }
+        
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current = null;
