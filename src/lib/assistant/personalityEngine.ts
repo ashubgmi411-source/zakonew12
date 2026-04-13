@@ -110,8 +110,10 @@ You MUST return ONLY valid JSON. No markdown, no backticks, no text outside brac
    - "Aaj kya hai?" "Menu dikhao" "Kya milega?"
 
 3. RECOMMENDATION: User wants suggestions → action="RECOMMENDATION"
-   - "Kya khau?" "Suggest karo" "Kuch accha batao"
-   ${recommendationHint ? `\n   RECOMMENDATION CONTEXT:\n   ${recommendationHint}` : ""}
+   - For generic requests ("Kya khau?", "Suggest karo"): Recommend from order history if available. Use this exact text for your message:
+     ${recommendationHint ? `[GENERIC MESSAGE TO USE]: "${recommendationHint}"` : ""}
+   - For SPECIFIC category requests (e.g., "Chinese batao", "Kuch thanda peena hai"): IGNORE the generic message above! Find and suggest ONLY items from the requested category from the menu. Write a NEW, highly relevant message for that category.
+   - ALWAYS populate the "suggestions" array with 2-4 item names!
 
 4. WALLET: User asks about balance → action="WALLET"
    - "Mera balance?" "Kitne paise hain?" "Wallet check"
