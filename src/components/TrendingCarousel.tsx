@@ -133,6 +133,16 @@ export default function TrendingCarousel({ items }: TrendingCarouselProps) {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                   <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent" />
                   <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-black/40" />
+                  {/* Bottom gradient fix */}
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.92))" }} />
+                </div>
+
+                {/* Category badge - absolute top left */}
+                <div className="absolute top-3 left-10 z-20">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-white/[0.1] backdrop-blur-md border border-white/[0.1] text-white/80">
+                      <span>{categoryEmoji}</span>
+                      <span className="capitalize">{item.category}</span>
+                    </span>
                 </div>
 
                 {/* ── Content Overlay ── */}
@@ -142,20 +152,17 @@ export default function TrendingCarousel({ items }: TrendingCarouselProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    {/* Category badge */}
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-white/[0.1] backdrop-blur-md border border-white/[0.1] text-white/80 mb-2">
-                      <span>{categoryEmoji}</span>
-                      <span className="capitalize">{item.category}</span>
-                    </span>
-
                     {/* Name */}
-                    <h3 className="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-white leading-tight mb-1 drop-shadow-lg">
+                    <h3
+                      className="font-display leading-tight mb-1"
+                      style={{ color: "#FFFFFF", fontSize: "22px", fontWeight: "800", textShadow: "0 2px 8px rgba(0,0,0,0.8)" }}
+                    >
                       {item.name}
                     </h3>
 
                     {/* Description */}
                     {item.description && (
-                      <p className="text-xs sm:text-sm text-white/60 line-clamp-2 max-w-md mb-3">
+                      <p className="text-xs sm:text-sm text-white/60 line-clamp-2 max-w-md mb-3" style={{ textShadow: "0 1px 4px rgba(0,0,0,0.8)" }}>
                         {item.description}
                       </p>
                     )}

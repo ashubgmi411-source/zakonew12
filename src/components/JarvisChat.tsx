@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bot, Check, X, Mic, Send } from "lucide-react";
 import toast from "react-hot-toast";
 import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
+import { speak } from "@/services/ttsService";
 import { getRespectfulGreeting } from "@/services/llmService";
 import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -23,22 +24,17 @@ interface OrderedItem {
     quantity: number;
     unit_price: number;
     total_price: number;
-    item_id: string;
+    item_id?: string;
+    id?: string;
 }
 
 interface StructuredResponse {
-    status: string;
-    items?: OrderedItem[];
-    grand_total?: number;
-    action?: string;
+    status?: string;
     message?: string;
-    found_items?: OrderedItem[];
-    not_found_items?: string[];
-    item_name?: string;
-    requested?: number;
-    available?: number;
-    orderId?: string;
-    total?: number;
+    remaining_balance?: number;
+    order_id?: string;
+    grand_total?: number;
+    items?: OrderedItem[];
 }
 
 export default function JarvisChat() {
@@ -63,7 +59,6 @@ export default function JarvisChat() {
         interimTranscript,
         startListening,
         stopListening,
-        speak
     } = useVoiceAssistant({
         onFinalTranscript: (text) => {
             setInput(text);
@@ -158,18 +153,22 @@ export default function JarvisChat() {
         if (confirmingRef.current) return; // prevent double click
         const order = pendingOrderRef.current || confirmOrder;
         if (!order) return;
+        
         confirmingRef.current = true;
-        setShowConfirm(false);
+        setShowConfirm(false); // hide immediately
         setConfirmOrder(null);
-        // Add user confirmation message directly — do NOT send to LLM
+        
+        // Add user confirmation message directly
         setMessages(prev => [...prev, { role: "user", content: "✅ Haan, Order Confirm Karo", timestamp: Date.now() }]);
+        
         const execItems = [{
             item_id: order.itemId,
             name: order.itemName,
             quantity: order.quantity,
-            unit_price: order.price,
-            total_price: order.price * order.quantity
+            unit_price: order.itemPrice || order.price,
+            total_price: (order.itemPrice || order.price) * order.quantity
         }];
+        
         await handleSend("execute_order", execItems);
         pendingOrderRef.current = null;
         confirmingRef.current = false;
@@ -189,7 +188,9 @@ export default function JarvisChat() {
 
         try {
             const token = await getIdToken();
-            const res = await fetch("/api/chat", {
+            const actionUrl = action === "execute_order" ? "/api/chat" : "/api/jarvis";
+            
+            const res = await fetch(actionUrl, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -209,13 +210,13 @@ export default function JarvisChat() {
 
             const data = await res.json();
 
-            // Safety: extract message — never show raw JSON
-            const safeMessage = (d: any): string => {
-                if (typeof d === 'string') return d;
-                if (d?.message && typeof d.message === 'string') return d.message;
-                if (d?.status) return buildStructuredDisplay(d);
-                return 'Kuch samajh nahi aaya, please dobara try karein.';
+            // Always parse only the message
+            const getSafeMsg = (d: any) => {
+                if (typeof d === "string") return d;
+                if (d.message && typeof d.message === "string") return d.message;
+                return "Kuch samajh nahi aara, sorry.";
             };
+            const safeMsg = getSafeMsg(data);
 
             if (res.ok) {
                 if (data.action === "ORDER") {
@@ -223,71 +224,39 @@ export default function JarvisChat() {
                         itemId: data.itemId,
                         itemName: data.itemName,
                         quantity: data.quantity,
-                        price: data.price || 0,
-                        message: data.message
+                        price: data.itemPrice || data.price || 0,
+                        message: safeMsg
                     };
                     setConfirmOrder(orderData);
                     pendingOrderRef.current = orderData;
                     setShowConfirm(true);
-                    speak(data.message || `${data.itemName} ka order confirm karein?`);
                     
+                    speak(safeMsg);
                     setMessages(prev => [
                         ...prev,
-                        {
-                            role: "assistant",
-                            content: safeMessage(data),
-                            timestamp: Date.now(),
-                        },
+                        { role: "assistant", content: safeMsg, timestamp: Date.now() }
                     ]);
-                } else {
-                    // Determine if this is a structured response
-                    const isStructured = data.status && ["ORDER_CONFIRMED", "ITEM_NOT_FOUND", "STOCK_ERROR", "ORDER_PLACED", "ORDER_FAILED", "CHAT_MODE"].includes(data.status);
-
-                    if (isStructured) {
-                        const displayContent = buildStructuredDisplay(data);
-                        
-                        // Voice out the response
-                        let speakText = data.message || displayContent;
-                        if (data.status === "ORDER_CONFIRMED") {
-                            speakText = `Aapka order summary: Total amount ${data.grand_total} rupees. Kya main order confirm karu?`;
-                        }
-                        speak(speakText);
-
-                        setMessages(prev => [
-                            ...prev,
-                            {
-                                role: "assistant",
-                                content: displayContent,
-                                timestamp: Date.now(),
-                                structured: data,
-                            },
-                        ]);
-
-                        if (data.status === "ORDER_PLACED" || data.action === "order_placed") {
-                            toast.success("Order placed! 🎉");
-                            clearCart();
-                        }
-                    } else {
-                        // Legacy/chat response — always show message string only
-                        const msgText = safeMessage(data);
-                        speak(msgText);
-                        setMessages(prev => [
-                            ...prev,
-                            {
-                                role: "assistant",
-                                content: msgText,
-                                timestamp: Date.now(),
-                            },
-                        ]);
-
-                        if (data.action === "order_placed") {
-                            toast.success("Order placed via AI! 🎉");
-                            clearCart();
-                        }
-                    }
+                } 
+                else if (action === "execute_order" || data.action === "order_placed" || data.status === "ORDER_PLACED") {
+                    speak(safeMsg);
+                    setMessages(prev => [
+                        ...prev,
+                        { role: "assistant", content: safeMsg, timestamp: Date.now() }
+                    ]);
+                    toast.success("Order placed successfully! 🎉");
+                    clearCart();
+                }
+                else {
+                    // CHAT or UNAVAILABLE
+                    speak(safeMsg);
+                    setMessages(prev => [
+                        ...prev,
+                        { role: "assistant", content: safeMsg, timestamp: Date.now() }
+                    ]);
                 }
             } else {
-                toast.error(data.error || "AI is taking a break...");
+                speak("Sorry, server side kuch issue hai");
+                toast.error(data.message || "AI is taking a break...");
                 setMessages(prev => [
                     ...prev,
                     {
