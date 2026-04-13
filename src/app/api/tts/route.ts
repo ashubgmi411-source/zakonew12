@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         if (pollyClient) {
             try {
                 const command = new SynthesizeSpeechCommand({
-                    Engine: "standard",
+                    Engine: "neural",
                     LanguageCode: "hi-IN", // Hindi/English bilingual
                     VoiceId: "Aditi",
                     OutputFormat: "mp3",
