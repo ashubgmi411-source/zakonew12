@@ -26,6 +26,7 @@ export interface UpsellSuggestion {
 export interface UpsellResult {
     suggestions: UpsellSuggestion[];
     message: string;
+    voiceText: string;
 }
 
 // ─── Pairing Rules ──────────────────────────────
@@ -178,25 +179,28 @@ export function generateUpsell(
     }
 
     // Build message
-    const message = buildUpsellMessage(orderedItemNames, suggestions);
+    const msgs = buildUpsellMessage(orderedItemNames, suggestions);
 
-    return { suggestions, message };
+    return { suggestions, message: msgs.ui, voiceText: msgs.voice };
 }
 
 function buildUpsellMessage(
     orderedItems: string[],
     suggestions: UpsellSuggestion[]
-): string {
-    if (suggestions.length === 0) return "";
+): { ui: string; voice: string } {
+    if (suggestions.length === 0) return { ui: "", voice: "" };
 
     const orderedStr = orderedItems.join(" aur ");
 
     if (suggestions.length === 1) {
         const s = suggestions[0];
-        return `💡 ${orderedStr} ke saath ${s.item.name} (₹${s.item.price}) try karoge? Perfect combo!`;
+        const voice = `Sath me ${s.item.name} loge kya? Mast combo banega!`;
+        const ui = `${orderedStr} ke saath ${s.item.name} (₹${s.item.price}) ka combo try karein!`;
+        return { ui, voice };
     }
 
-    const names = suggestions.map((s) => `${s.item.name} (₹${s.item.price})`).join(" aur ");
-    const extraCost = suggestions.reduce((sum, s) => sum + s.item.price, 0);
-    return `💡 ${orderedStr} ke saath ${names} combo le lo — sirf ₹${extraCost} extra!`;
+    const names = suggestions.map((s) => `${s.item.name}`).join(" oar ");
+    const voice = `Sath me ${names} try kar sakte ho, badhiya lagega.`;
+    const ui = `${orderedStr} ke saath ${suggestions.map(s => s.item.name).join(" aur ")} ka combo try karein!`;
+    return { ui, voice };
 }

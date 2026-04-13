@@ -365,7 +365,10 @@ export async function POST(req: NextRequest) {
                         };
                         if (upsellResult.message) {
                             parsed.message = (parsed.message || "") + "\n\n💡 " + upsellResult.message;
+                            parsed.voiceText = `Order lag gaya! ${upsellResult.voiceText}`;
                         }
+                    } else {
+                        parsed.voiceText = "Order lag gaya! Aur kuch lenge?";
                     }
 
                     // Set pending order in context
@@ -441,7 +444,7 @@ export async function POST(req: NextRequest) {
             suggestions,
             upsell: upsellData,
             walletBalance,
-            voiceText: stripEmojis(parsed.message || ""),
+            voiceText: parsed.voiceText || stripEmojis(parsed.message || ""),
             items: parsed.orderItems || [], // Provide items for frontend compatibility
         });
     } catch (error: any) {
