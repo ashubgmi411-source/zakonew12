@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
             try {
                 const command = new SynthesizeSpeechCommand({
                     Engine: "neural",
-                    LanguageCode: "hi-IN", // Hindi/English bilingual
-                    VoiceId: "Aditi",
+                    LanguageCode: "hi-IN",
+                    VoiceId: "Kajal",   // Kajal = Hindi neural voice (Aditi is standard-only)
                     OutputFormat: "mp3",
                     Text: text,
                     TextType: "text",

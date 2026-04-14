@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bot, Check, X, Mic, Send, Sparkles, Volume2, VolumeX } from "lucide-react";
 import toast from "react-hot-toast";
 import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
-import { speak } from "@/services/ttsService";
+import { speak, unlockAudio } from "@/services/ttsService";
 import { getRespectfulGreeting } from "@/services/llmService";
 import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -78,9 +78,15 @@ export default function JarvisChat() {
     }, [voiceTranscript, isListening]);
 
     const toggleVoice = () => {
+        unlockAudio(); // Unlock mobile audio on user tap
         if (isListening) stopListening();
         else startListening();
     };
+
+    // Unlock audio when chat panel opens (user gesture)
+    useEffect(() => {
+        if (open) unlockAudio();
+    }, [open]);
 
     // Greeting on open
     useEffect(() => {
@@ -174,6 +180,8 @@ export default function JarvisChat() {
         async (action?: string, orderItems?: OrderedItem[], overrideText?: string) => {
             const text = overrideText || input.trim();
             if ((!text && !action) || processing) return;
+
+            unlockAudio(); // Ensure mobile audio is unlocked on every send
 
             const userMsg = text || (action === "execute_order" ? "✅ Order Confirm" : "");
             if (userMsg && action !== "execute_order") {
