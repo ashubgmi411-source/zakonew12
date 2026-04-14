@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { MenuItem } from "@/types";
+import { Coffee, Cookie, Utensils, Check, Flame } from "lucide-react";
 
 interface TrendingCarouselProps {
   items: MenuItem[];
@@ -49,16 +50,12 @@ export default function TrendingCarousel({ items }: TrendingCarouselProps) {
   if (total === 0) return null;
 
   const item = trendingItems[currentIndex];
-  const categoryEmoji =
+  const CategoryIcon =
     item.category === "beverages"
-      ? "☕"
+      ? Coffee
       : item.category === "snacks"
-        ? "🍿"
-        : item.category === "meals"
-          ? "🍱"
-          : item.category === "desserts"
-            ? "🍰"
-            : "🍽️";
+        ? Cookie
+        : Utensils;
 
   // Slide animation variants
   const slideVariants = {
@@ -124,8 +121,8 @@ export default function TrendingCarousel({ items }: TrendingCarouselProps) {
                       loading={currentIndex === 0 ? "eager" : "lazy"}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-6xl sm:text-7xl opacity-20">
-                      {categoryEmoji}
+                    <div className="w-full h-full flex items-center justify-center text-white opacity-20">
+                      <CategoryIcon className="w-16 h-16 sm:w-24 sm:h-24" />
                     </div>
                   )}
 
@@ -140,7 +137,7 @@ export default function TrendingCarousel({ items }: TrendingCarouselProps) {
                 {/* Category badge - absolute top left */}
                 <div className="absolute top-3 left-10 z-20">
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-white/[0.1] backdrop-blur-md border border-white/[0.1] text-white/80">
-                      <span>{categoryEmoji}</span>
+                      <span><CategoryIcon className="w-3 h-3" /></span>
                       <span className="capitalize">{item.category}</span>
                     </span>
                 </div>
@@ -172,10 +169,10 @@ export default function TrendingCarousel({ items }: TrendingCarouselProps) {
                       <span className="price-premium text-xl sm:text-2xl">₹{item.price}</span>
 
                       {item.available && item.quantity > 0 && (
-                        <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
+                        <span className="text-[10px] sm:text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20 flex items-center gap-1">
                           {item.quantity <= 3
-                            ? `🔥 Only ${item.quantity} left`
-                            : `✓ ${item.quantity} available`}
+                            ? <><Flame className="w-3 h-3" /> Only {item.quantity} left</>
+                            : <><Check className="w-3 h-3" /> {item.quantity} available</>}
                         </span>
                       )}
                     </div>
@@ -189,7 +186,7 @@ export default function TrendingCarousel({ items }: TrendingCarouselProps) {
               <>
                 <button
                   onClick={(e) => { e.stopPropagation(); goPrev(); }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/[0.1] flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white hover:border-gold-400/30 hover:shadow-[0_0_16px_rgba(251,191,36,0.15)] transition-all duration-300 active:scale-90"
+                  className="absolute left-2 top-1/3 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/[0.1] flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white hover:border-gold-400/30 hover:shadow-[0_0_16px_rgba(251,191,36,0.15)] transition-all duration-300 active:scale-90"
                   aria-label="Previous slide"
                 >
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -198,7 +195,7 @@ export default function TrendingCarousel({ items }: TrendingCarouselProps) {
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); goNext(); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/[0.1] flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white hover:border-gold-400/30 hover:shadow-[0_0_16px_rgba(251,191,36,0.15)] transition-all duration-300 active:scale-90"
+                  className="absolute right-2 top-1/3 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/[0.1] flex items-center justify-center text-white/80 hover:bg-black/60 hover:text-white hover:border-gold-400/30 hover:shadow-[0_0_16px_rgba(251,191,36,0.15)] transition-all duration-300 active:scale-90"
                   aria-label="Next slide"
                 >
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
