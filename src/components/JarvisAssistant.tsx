@@ -36,21 +36,21 @@ export default function JarvisAssistant() {
     useEffect(() => {
         if (!user || !profile?.name || greetAttempted.current) return;
 
-        const hasGreeted = sessionStorage.getItem("jarvis_greeted");
+        const hasGreeted = sessionStorage.getItem("ziva_greeted");
         if (!hasGreeted) {
             greetAttempted.current = true;
             const greeting = getRespectfulGreeting({ name: profile.name, gender: profile.gender });
             const greetingText = `${greeting}! Zayko mein aapka swagat hai. Bataye main aapke liye kya order karun?`;
 
             const playGreeting = () => {
-                sessionStorage.setItem("jarvis_greeted", "true");
+                sessionStorage.setItem("ziva_greeted", "true");
                 speak(greetingText);
                 window.removeEventListener("pointerdown", playGreeting);
             };
 
             // 1. Try to play immediately (might be blocked by strict autoplay policies)
             setTimeout(() => {
-                if (!sessionStorage.getItem("jarvis_greeted")) {
+                if (!sessionStorage.getItem("ziva_greeted")) {
                     speak(greetingText).catch((err) => {
                         console.warn("Autoplay blocked, waiting for interaction", err);
                     });
@@ -206,7 +206,7 @@ export default function JarvisAssistant() {
                     toast.success(pendingOrder ? "Items appended to pending order" : "Awaiting confirmation...");
                     speak(prompt);
                 } else if (data.status === "ITEM_NOT_FOUND" || data.status === "STOCK_ERROR") {
-                    toast.error(`Jarvis: ${data.message}`);
+                    toast.error(`Ziva: ${data.message}`);
                     speak(data.message);
                 } else if (pendingOrder) {
                     // It fell through to API but couldn't find items. Might be a messy confirmation phrase.
@@ -222,11 +222,11 @@ export default function JarvisAssistant() {
                     }
                 } else {
                     // Just spoke back the response
-                    toast.success(`Jarvis says: ${data.message || "Done!"}`);
+                    toast.success(`Ziva says: ${data.message || "Done!"}`);
                     speak(data.message || "Done!");
                 }
             } else {
-                console.error("Jarvis API failed:", res.status, data);
+                console.error("Ziva API failed:", res.status, data);
                 if (res.status === 429) {
                     toast.error("You are speaking too fast! Wait a minute.");
                     speak("I am receiving too many requests. Please wait a moment.");
@@ -323,11 +323,11 @@ export default function JarvisAssistant() {
 
     // Hide on admin/stock routes
     if (!user) {
-        console.log("JarvisAssistant: No user, not rendering");
+        console.log("ZivaAssistant: No user, not rendering");
         return null;
     }
     if (pathname?.startsWith("/admin") || pathname?.startsWith("/stock") || pathname?.startsWith("/executive")) {
-        console.log("JarvisAssistant: On admin/stock route, not rendering");
+        console.log("ZivaAssistant: On admin/stock route, not rendering");
         return null;
     }
 
@@ -407,7 +407,7 @@ export default function JarvisAssistant() {
                                 )}
                                 {lastResponse && !isListening && (
                                     <p className="text-gold-400">
-                                        Jarvis: <span className="text-white">"{lastResponse}"</span>
+                                        Ziva: <span className="text-white">"{lastResponse}"</span>
                                     </p>
                                 )}
                             </div>

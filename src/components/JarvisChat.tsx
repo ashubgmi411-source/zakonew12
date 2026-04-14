@@ -119,8 +119,8 @@ export default function JarvisChat() {
     // Open from Mobile NavBar
     useEffect(() => {
         const handler = () => setOpen(true);
-        window.addEventListener("open-jarvis", handler);
-        return () => window.removeEventListener("open-jarvis", handler);
+        window.addEventListener("open-ziva", handler);
+        return () => window.removeEventListener("open-ziva", handler);
     }, []);
 
     // Order status announcements
@@ -285,7 +285,7 @@ export default function JarvisChat() {
                     ]);
                 }
             } catch (err) {
-                console.error("Jarvis Error:", err);
+                console.error("Ziva Error:", err);
                 toast.error("Connection lost");
                 if (!isMuted) speak("Sorry, network error aa gaya.");
             } finally {
@@ -365,7 +365,7 @@ export default function JarvisChat() {
                                 </div>
                                 <div>
                                     <h3 className="font-display font-black text-base tracking-tight italic" style={{ color: "var(--text-primary)" }}>
-                                        JARVIS{" "}
+                                        ZIVA{" "}
                                         <span className="text-[10px] px-1.5 py-0.5 rounded ml-1 not-italic" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>
                                             v2.0
                                         </span>
@@ -581,7 +581,7 @@ export default function JarvisChat() {
                                                 <span className="w-2 h-2 rounded-full animate-bounce" style={{ background: "var(--accent)", animationDelay: "300ms" }}></span>
                                             </div>
                                             <span className="text-[10px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-                                                Jarvis soch raha hai...
+                                                Ziva soch rahi hai...
                                             </span>
                                         </div>
                                     </div>

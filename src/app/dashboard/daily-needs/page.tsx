@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { MenuItem } from "@/types";
 import type { Reservation, UserBehavior, RestrictionLevel } from "@/types/reservation";
+import { RefreshCcw, Send, Plus, Package, Edit, Trash2, Info, ChevronLeft, PackageCheck, AlertTriangle, Ban, Clock, Check } from "lucide-react";
 
 const ALL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -59,8 +60,8 @@ function PickupCountdown({ endTime }: { endTime: string }) {
     }, [endTime]);
 
     return (
-        <span className={`text-xs font-bold ${isUrgent ? "text-red-400 animate-pulse" : "text-blue-400"}`}>
-            ⏱ {timeLeft}
+        <span className={`flex items-center gap-1 text-xs font-bold ${isUrgent ? "text-red-400 animate-pulse" : "text-blue-400"}`}>
+            <Clock className="w-3 h-3" /> {timeLeft}
         </span>
     );
 }
@@ -341,8 +342,8 @@ export default function DailyNeedsPage() {
             {/* Header */}
             <div className="bg-zayko-800/80 backdrop-blur-xl border-b border-white/[0.06] px-4 py-4 sm:px-6 sticky top-0 z-40">
                 <div className="max-w-3xl mx-auto flex items-center gap-4">
-                    <Link href="/" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs hover:bg-white/10 transition-all">←</Link>
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-xl shadow-lg shadow-blue-500/5">🍱</div>
+                    <Link href="/" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs hover:bg-white/10 transition-all"><ChevronLeft className="w-4 h-4" /></Link>
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shadow-lg shadow-blue-500/5"><Package className="w-5 h-5 text-blue-500" /></div>
                     <div>
                         <h1 className="text-lg font-display font-bold text-white uppercase tracking-tight">Daily Needs</h1>
                         <p className="text-[10px] text-zayko-400 font-bold tracking-widest uppercase">Smart Reservation System</p>
@@ -361,9 +362,9 @@ export default function DailyNeedsPage() {
                                 ? "bg-orange-500/10 border-orange-500/30"
                                 : "bg-yellow-500/10 border-yellow-500/30"
                     }`}>
-                        <span className="text-xl">{
-                            userBehavior.restrictionLevel === "disabled" ? "🚫" :
-                                userBehavior.restrictionLevel === "limited" ? "⚠️" : "💡"
+                        <span className="text-xl flex shrink-0 mt-0.5">{
+                            userBehavior.restrictionLevel === "disabled" ? <Ban className="w-5 h-5 text-red-500" /> :
+                                userBehavior.restrictionLevel === "limited" ? <AlertTriangle className="w-5 h-5 text-orange-500" /> : <Info className="w-5 h-5 text-yellow-500" />
                         }</span>
                         <div>
                             <p className={`text-sm font-semibold ${
@@ -396,7 +397,7 @@ export default function DailyNeedsPage() {
                 {reservations.length > 0 && (
                     <div className="animate-fade-in">
                         <h2 className="text-base font-display font-bold text-white mb-4 flex items-center gap-2">
-                            <span className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm">📋</span>
+                            <span className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm"><PackageCheck className="w-4 h-4 text-blue-400" /></span>
                             Today&apos;s Reservations
                         </h2>
                         <div className="space-y-3">
@@ -419,7 +420,7 @@ export default function DailyNeedsPage() {
 
                                         {/* Pickup window info */}
                                         <div className="flex items-center gap-4 text-xs text-zayko-500 mb-3">
-                                            <span>🕐 Pickup: {new Date(r.pickupWindowStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {new Date(r.pickupWindowEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                                            <span><Clock className="w-3 h-3 inline mr-1" /> Pickup: {new Date(r.pickupWindowStart).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} – {new Date(r.pickupWindowEnd).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                                         </div>
 
                                         {/* Action buttons */}
@@ -430,7 +431,7 @@ export default function DailyNeedsPage() {
                                                     disabled={confirmingId === r.id}
                                                     className="flex-1 py-2.5 bg-blue-500/20 text-blue-400 rounded-xl text-sm font-bold hover:bg-blue-500/30 transition-all disabled:opacity-50"
                                                 >
-                                                    {confirmingId === r.id ? "Confirming…" : "✓ Confirm Pickup"}
+                                                    {confirmingId === r.id ? "Confirming…" : <span className="flex items-center justify-center gap-2"><Check className="w-4 h-4" /> Confirm Pickup</span>}
                                                 </button>
                                             )}
                                             {r.status === "confirmed" && (
@@ -439,7 +440,7 @@ export default function DailyNeedsPage() {
                                                     disabled={collectingId === r.id}
                                                     className="flex-1 py-2.5 bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-bold hover:bg-emerald-500/30 transition-all disabled:opacity-50"
                                                 >
-                                                    {collectingId === r.id ? "Processing…" : "🍽️ Mark Collected"}
+                                                    {collectingId === r.id ? "Processing…" : <span className="flex items-center justify-center gap-2"><PackageCheck className="w-4 h-4" /> Mark Collected</span>}
                                                 </button>
                                             )}
                                         </div>
@@ -453,7 +454,7 @@ export default function DailyNeedsPage() {
                 {/* ─── Create Form ─── */}
                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6 animate-fade-in">
                     <h2 className="text-base font-display font-bold text-white mb-4 flex items-center gap-2">
-                        <span className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-sm">➕</span>
+                        <span className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-sm"><Plus className="w-4 h-4 text-emerald-400" /></span>
                         Add Demand
                     </h2>
 
@@ -480,7 +481,7 @@ export default function DailyNeedsPage() {
                         <div className="flex flex-wrap gap-2 mb-2">
                             <button onClick={handleDailyToggle}
                                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${daily ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-white/5 text-zayko-400 border border-white/10 hover:bg-white/10"}`}>
-                                🔁 Daily
+                                <span className="flex items-center gap-1.5"><RefreshCcw className="w-3 h-3" /> Daily</span>
                             </button>
                             {ALL_DAYS.map((day) => (
                                 <button key={day} onClick={() => toggleDay(day)}
@@ -493,7 +494,7 @@ export default function DailyNeedsPage() {
 
                     <button onClick={handleCreate} disabled={saving}
                         className="btn-gold w-full py-3 flex items-center justify-center gap-2">
-                        {saving ? <div className="w-5 h-5 border-2 border-zayko-900 border-t-transparent rounded-full animate-spin"></div> : <>Save Demand 🚀</>}
+                        {saving ? <div className="w-5 h-5 border-2 border-zayko-900 border-t-transparent rounded-full animate-spin"></div> : <>Save Demand <Send className="w-4 h-4" /></>}
                     </button>
 
                     <p className="text-xs text-zayko-500 mt-3 text-center">
@@ -504,7 +505,7 @@ export default function DailyNeedsPage() {
                 {/* ─── Existing Demands ─── */}
                 <div>
                     <h2 className="text-base font-display font-bold text-white mb-4 flex items-center gap-2">
-                        <span className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center text-sm">📦</span>
+                        <span className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center text-sm"><Package className="w-4 h-4 text-purple-400" /></span>
                         Your Demands
                     </h2>
 
@@ -514,7 +515,7 @@ export default function DailyNeedsPage() {
                         </div>
                     ) : demands.length === 0 ? (
                         <div className="bg-zayko-800/30 border border-zayko-700 rounded-2xl p-8 text-center">
-                            <div className="text-4xl mb-3">📭</div>
+                            <div className="flex justify-center mb-3"><Package className="w-10 h-10 text-zayko-500" /></div>
                             <p className="text-zayko-400">No demands yet. Add one above!</p>
                         </div>
                     ) : (
@@ -587,7 +588,7 @@ export default function DailyNeedsPage() {
                                                         className="px-3 py-2 rounded-xl text-xs font-bold bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all disabled:opacity-50"
                                                         title="Reserve for today"
                                                     >
-                                                        {reservingItem === d.itemId ? "…" : "📋"}
+                                                        {reservingItem === d.itemId ? "…" : <PackageCheck className="w-4 h-4" />}
                                                     </button>
                                                 )}
                                                 {/* Toggle Switch */}
@@ -598,8 +599,8 @@ export default function DailyNeedsPage() {
                                                 >
                                                     <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${d.isActive ? "left-[22px]" : "left-0.5"}`}></span>
                                                 </button>
-                                                <button onClick={() => startEdit(d)} className="p-2 rounded-xl text-sm bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all" title="Edit">✏️</button>
-                                                <button onClick={() => handleDelete(d.id)} className="p-2 rounded-xl text-sm bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all" title="Delete">🗑️</button>
+                                                <button onClick={() => startEdit(d)} className="p-2 rounded-xl text-sm bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all flex items-center justify-center" title="Edit"><Edit className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDelete(d.id)} className="p-2 rounded-xl text-sm bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all flex items-center justify-center" title="Delete"><Trash2 className="w-4 h-4" /></button>
                                             </div>
                                         </div>
                                     )}
@@ -611,7 +612,7 @@ export default function DailyNeedsPage() {
 
                 {/* Info */}
                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-4 flex items-start gap-3">
-                    <span className="text-xl">ℹ️</span>
+                    <span className="flex shrink-0"><Info className="w-5 h-5 text-blue-400 mt-0.5" /></span>
                     <div>
                         <p className="text-blue-300 text-sm font-semibold">Smart Reservation System</p>
                         <p className="text-blue-400/70 text-xs mt-0.5">

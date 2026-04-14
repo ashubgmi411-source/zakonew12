@@ -6,10 +6,15 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { Utensils, Handshake, Smartphone, Lightbulb, MessageSquare, Edit, Send, ClipboardList, Clock, CheckCircle, ChevronLeft, Star } from "lucide-react";
 
 const CATEGORIES = ["Food Quality", "Service", "App Issue", "Suggestion", "Other"];
-const CAT_ICONS: Record<string, string> = {
-    "Food Quality": "🍽️", "Service": "🤝", "App Issue": "📱", "Suggestion": "💡", "Other": "💬",
+const CAT_ICONS: Record<string, React.ReactNode> = {
+    "Food Quality": <Utensils className="w-4 h-4" />,
+    "Service": <Handshake className="w-4 h-4" />,
+    "App Issue": <Smartphone className="w-4 h-4" />,
+    "Suggestion": <Lightbulb className="w-4 h-4" />,
+    "Other": <MessageSquare className="w-4 h-4" />,
 };
 const STATUS_STYLE: Record<string, string> = {
     new: "bg-yellow-500/20 text-yellow-400",
@@ -106,8 +111,10 @@ export default function UserFeedbackPage() {
             {/* Header */}
             <div className="bg-zayko-800/80 backdrop-blur-xl border-b border-white/[0.06] px-4 py-4 sm:px-6 sticky top-0 z-40">
                 <div className="max-w-3xl mx-auto flex items-center gap-4">
-                    <Link href="/" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs hover:bg-white/10 transition-all">←</Link>
-                    <div className="w-10 h-10 rounded-xl bg-gold-500/10 flex items-center justify-center text-xl shadow-lg shadow-gold-500/5">⭐</div>
+                    <Link href="/" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs hover:bg-white/10 transition-all"><ChevronLeft className="w-4 h-4" /></Link>
+                    <div className="w-10 h-10 rounded-xl bg-gold-500/10 flex items-center justify-center text-xl shadow-lg shadow-gold-500/5">
+                        <Star className="w-5 h-5 text-gold-500" fill="currentColor" />
+                    </div>
                     <div>
                         <h1 className="text-lg font-display font-bold text-white uppercase tracking-tight">Feedback</h1>
                         <p className="text-[10px] text-zayko-400 font-bold tracking-widest uppercase">Improve Your Experience</p>
@@ -119,7 +126,9 @@ export default function UserFeedbackPage() {
                 {/* ─── Submit Form ─── */}
                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6 animate-fade-in">
                     <h2 className="text-base font-display font-bold text-white mb-5 flex items-center gap-2">
-                        <span className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-sm">✍️</span>
+                        <span className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-sm">
+                            <Edit className="w-4 h-4 text-emerald-500" />
+                        </span>
                         Submit Feedback
                     </h2>
 
@@ -142,8 +151,8 @@ export default function UserFeedbackPage() {
                         <div className="flex flex-wrap gap-2">
                             {CATEGORIES.map((cat) => (
                                 <button key={cat} onClick={() => setCategory(cat)}
-                                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${category === cat ? "bg-gold-500 text-zayko-900 shadow-lg shadow-gold-500/20" : "bg-white/5 text-zayko-400 border border-white/10 hover:bg-white/10"}`}>
-                                    {CAT_ICONS[cat]} {cat}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${category === cat ? "bg-gold-500 text-zayko-900 shadow-lg shadow-gold-500/20" : "bg-white/5 text-zayko-400 border border-white/10 hover:bg-white/10"}`}>
+                                    {CAT_ICONS[cat]} <span>{cat}</span>
                                 </button>
                             ))}
                         </div>
@@ -160,14 +169,16 @@ export default function UserFeedbackPage() {
 
                     <button onClick={handleSubmit} disabled={submitting}
                         className="btn-gold w-full py-3 flex items-center justify-center gap-2">
-                        {submitting ? <div className="w-5 h-5 border-2 border-zayko-900 border-t-transparent rounded-full animate-spin"></div> : <>Submit Feedback 🚀</>}
+                        {submitting ? <div className="w-5 h-5 border-2 border-zayko-900 border-t-transparent rounded-full animate-spin"></div> : <>Submit Feedback <Send className="w-4 h-4" /></>}
                     </button>
                 </div>
 
                 {/* ─── My Feedbacks ─── */}
                 <div>
                     <h2 className="text-base font-display font-bold text-white mb-4 flex items-center gap-2">
-                        <span className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center text-sm">📋</span>
+                        <span className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center text-sm">
+                            <ClipboardList className="w-4 h-4 text-purple-400" />
+                        </span>
                         My Feedbacks
                     </h2>
 
@@ -177,7 +188,9 @@ export default function UserFeedbackPage() {
                         </div>
                     ) : feedbacks.length === 0 ? (
                         <div className="bg-zayko-800/30 border border-zayko-700 rounded-2xl p-8 text-center">
-                            <div className="text-4xl mb-3">📭</div>
+                            <div className="flex justify-center mb-3">
+                                <MessageSquare className="w-10 h-10 text-zayko-500" />
+                            </div>
                             <p className="text-zayko-400">No feedbacks yet</p>
                         </div>
                     ) : (
@@ -192,8 +205,8 @@ export default function UserFeedbackPage() {
                                                 ))}
                                             </div>
                                             <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">{f.category}</span>
-                                            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLE[f.status] || STATUS_STYLE.new}`}>
-                                                {f.status === "reviewed" ? "✅ Reviewed" : "⏳ Pending"}
+                                            <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLE[f.status] || STATUS_STYLE.new}`}>
+                                                {f.status === "reviewed" ? <><CheckCircle className="w-3 h-3" /> Reviewed</> : <><Clock className="w-3 h-3" /> Pending</>}
                                             </span>
                                         </div>
                                         <span className="text-xs text-zayko-500">{f.createdAt ? new Date(f.createdAt).toLocaleDateString() : 'Just now'}</span>

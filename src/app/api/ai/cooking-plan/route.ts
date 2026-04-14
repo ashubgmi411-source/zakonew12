@@ -1,5 +1,5 @@
 /**
- * /api/ai/cooking-plan — Admin API for Jarvis 2.0 AI Brain
+ * /api/ai/cooking-plan — Admin API for Ziva 2.0 AI Brain
  *
  * GET: Fetch the cooking plan for a specific date (defaults to tomorrow)
  * POST: Force regenerate the cooking plan via AI
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ success: true, plan });
     } catch (error) {
-        console.error("[Jarvis Brain] Failed to fetch/generate cooking plan:", error);
+        console.error("[Ziva Brain] Failed to fetch/generate cooking plan:", error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : "Internal Server Error" },
             { status: 500 }
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
         const plan = await generateCookingPlan(dateStr);
         return NextResponse.json({ success: true, plan });
     } catch (error) {
-        console.error("[Jarvis Brain] Failed to force generate cooking plan:", error);
+        console.error("[Ziva Brain] Failed to force generate cooking plan:", error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : "Internal Server Error" },
             { status: 500 }

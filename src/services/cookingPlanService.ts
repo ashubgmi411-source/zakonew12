@@ -39,7 +39,7 @@ export async function generateCookingPlan(forceDate?: string): Promise<DailyCook
     const targetDateStr = targetDate.toISOString().split("T")[0];
     const dayOfWeek = targetDate.toLocaleDateString("en-US", { weekday: "long" });
 
-    console.log(`[Jarvis 2.0] Generating plan for ${targetDateStr} (${dayOfWeek})`);
+    console.log(`[Ziva 2.0] Generating plan for ${targetDateStr} (${dayOfWeek})`);
 
     // 1. Fetch Menu
     const menuSnap = await adminDb.collection("menuItems").where("available", "==", true).get();
@@ -81,7 +81,7 @@ export async function generateCookingPlan(forceDate?: string): Promise<DailyCook
     });
 
     // 5. Provide structure to AI
-    const systemPrompt = `You are Jarvis 2.0, the AI Brain for a college canteen. 
+    const systemPrompt = `You are Ziva 2.0, the AI Brain for a college canteen. 
 Your goal is to predict food demand for tomorrow and manage inventory.
 Return a STRICT JSON object representing tomorrow's cooking plan.
 DO NOT use markdown formatting like \`\`\`json. Return only the raw JSON.
@@ -165,7 +165,7 @@ Only include items from the "Active Menu". Include inventory alerts if currentSt
         plan.id = docRef.id;
     }
 
-    console.log(`[Jarvis 2.0] Cooking plan for ${targetDateStr} generated via ${aiResponse.provider}`);
+    console.log(`[Ziva 2.0] Cooking plan for ${targetDateStr} generated via ${aiResponse.provider}`);
     return plan;
 }
 

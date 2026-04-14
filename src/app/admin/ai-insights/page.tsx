@@ -47,7 +47,7 @@ export default function AIInsightsPage() {
 
     const regeneratePlan = async () => {
         setGenerating(true);
-        const toastId = toast.loading("Jarvis is generating a new cooking plan...");
+        const toastId = toast.loading("Ziva is generating a new cooking plan...");
         try {
             const res = await fetch("/api/ai/cooking-plan", {
                 method: "POST",
@@ -90,7 +90,7 @@ export default function AIInsightsPage() {
                             </div>
                             <div>
                                 <h1 className="text-lg font-display font-bold text-white">
-                                    Jarvis 2.0 Brain
+                                    Ziva 2.0 Brain
                                 </h1>
                                 <p className="text-xs text-zayko-400">
                                     AI Cooking Plan & Insights
@@ -123,7 +123,7 @@ export default function AIInsightsPage() {
                         <div className="text-center py-20 bg-zayko-800/50 rounded-2xl border border-zayko-700">
                             <span className="text-5xl block mb-4">🔮</span>
                             <h2 className="text-lg font-bold text-white mb-2">No Cooking Plan Found</h2>
-                            <p className="text-sm text-zayko-400 mb-6">Jarvis hasn't generated a plan for today.</p>
+                            <p className="text-sm text-zayko-400 mb-6">Ziva hasn't generated a plan for today.</p>
                             <button
                                 onClick={regeneratePlan}
                                 className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition-all"

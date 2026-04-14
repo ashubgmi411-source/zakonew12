@@ -258,7 +258,7 @@ export interface ScheduledOrder {
     updatedAt: string;
 }
 
-// ─── AI Canteen Brain (Jarvis 2.0) ──────────────
+// ─── AI Canteen Brain (Ziva 2.0) ──────────────
 
 export interface CookingPlanItem {
     itemId: string;

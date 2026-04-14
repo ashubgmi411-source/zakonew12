@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         
         // 2. Pass menu to LLM system prompt
         const menuList = liveMenu.map(m => `- ${m.name} (ID: ${m.id}, Price: ₹${m.price}, Stock: ${m.quantity})`).join("\n");
-        const systemPrompt = `You are Jarvis, AI assistant for Zayko.
+        const systemPrompt = `You are Ziva, AI assistant for Zayko.
 
 AVAILABLE MENU:
 ${menuList}
@@ -151,7 +151,7 @@ RULES:
         return NextResponse.json(parsed);
 
     } catch (e) {
-        console.error("Jarvis Route Error", e);
+        console.error("Ziva Route Error", e);
         return NextResponse.json({ action: "UNAVAILABLE", message: "Sorry, server side kuch issue hai" });
     }
 }

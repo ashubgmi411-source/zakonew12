@@ -623,7 +623,7 @@ async function executeOrder(uid: string, cart: any[], userProfile: any) {
                 userId: uid,
                 type: "debit",
                 amount: total,
-                description: `Jarvis Order #${orderId}`,
+                description: `Ziva Order #${orderId}`,
                 createdAt: new Date().toISOString(),
             });
 
@@ -662,7 +662,7 @@ async function executeOrder(uid: string, cart: any[], userProfile: any) {
             voiceText: `Order placed! ${itemsSummary}. ${total} rupees deducted. Tumhara order prepare ho raha hai!`,
             orderId,
             total,
-            provider: "jarvis-executor",
+            provider: "ziva-executor",
         });
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Unknown error";

@@ -81,11 +81,11 @@ export async function POST(req: NextRequest) {
             // Avoid injecting huge amounts of redundant data to keep prompt small
             menuItemsJSON = JSON.stringify(liveMenu.map(m => ({ id: m.id, name: m.name, price: m.price })));
         } catch (e) {
-            console.error("Menu fetch error for JARVIS prompt:", e);
+            console.error("Menu fetch error for ZIVA prompt:", e);
             menuItemsJSON = "Failed to load live menu. Apologize to the user.";
         }
 
-        let systemPrompt = `You are Jarvis, the AI assistant for Zayko — an AI-powered canteen management system. You are smart, friendly, and helpful.
+        let systemPrompt = `You are Ziva, the AI assistant for Zayko — an AI-powered canteen management system. You are smart, friendly, and helpful.
 
 AVAILABLE MENU (fetched fresh from database):
 ${menuItemsJSON}
@@ -517,7 +517,7 @@ Keep it extremely short and concise! NO long explanations.`;
                         userId: uid,
                         type: "debit",
                         amount: total,
-                        description: `Jarvis Order #${orderId}`,
+                        description: `Ziva Order #${orderId}`,
                         createdAt: new Date().toISOString(),
                     });
 
@@ -535,8 +535,8 @@ Keep it extremely short and concise! NO long explanations.`;
                 });
 
                 return NextResponse.json({
-                    message: `✅ Order placed successfully by Jarvis! 🎉\n\n🆔 Order ID: #${orderId}\n💰 ₹${total} deducted from wallet.\n\nAapka order prepare ho raha hai! 🍽️`,
-                    provider: "jarvis-executor",
+                    message: `✅ Order placed successfully by Ziva! 🎉\n\n🆔 Order ID: #${orderId}\n💰 ₹${total} deducted from wallet.\n\nAapka order prepare ho raha hai! 🍽️`,
+                    provider: "ziva-executor",
                     action: "order_placed"
                 });
             } catch (err: any) {

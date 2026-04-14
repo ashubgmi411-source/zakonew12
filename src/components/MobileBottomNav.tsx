@@ -11,7 +11,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { Utensils, ClipboardList, Wallet, User, Bot } from "lucide-react";
+import { Utensils, ClipboardList, Wallet, User, Bot, Smile } from "lucide-react";
 
 export default function MobileBottomNav() {
     const pathname = usePathname();
@@ -105,7 +105,7 @@ export default function MobileBottomNav() {
                         );
                     })}
 
-                    {/* Jarvis AI Assistant Button */}
+                    {/* Ziva AI Assistant Button */}
                     <motion.button
                         whileTap={{ scale: 0.9 }}
                         onClick={() => {
@@ -113,7 +113,7 @@ export default function MobileBottomNav() {
                                 setShowLoginPrompt(true);
                                 return;
                             }
-                            window.dispatchEvent(new Event('open-jarvis'));
+                            window.dispatchEvent(new Event('open-ziva'));
                         }}
                         className="flex flex-col items-center gap-1 py-1"
                     >
@@ -122,7 +122,7 @@ export default function MobileBottomNav() {
                             <Bot className="w-5 h-5 text-white" />
                         </div>
                         <span className="text-[10px] font-bold" style={{ color: "var(--accent)" }}>
-                            Jarvis
+                            Ziva
                         </span>
                     </motion.button>
                 </div>
@@ -160,7 +160,7 @@ export default function MobileBottomNav() {
                                     Login zaroori hai!
                                 </h3>
                                 <p className="text-sm mt-2" style={{ color: "var(--text-secondary)" }}>
-                                    Aage badhne ke liye sign in karein 😊
+                                    Aage badhne ke liye sign in karein <Smile className="w-4 h-4 inline" />
                                 </p>
                             </div>
 
