@@ -32,7 +32,7 @@ export default function JarvisAssistant() {
     const [pendingOrder, setPendingOrder] = useState<any[] | null>(null);
     const [pendingTotal, setPendingTotal] = useState<number>(0);
 
-    // ── Auto Greeting Logic ──
+    // ── Auto Greeting Logic (only on first user interaction) ──
     useEffect(() => {
         if (!user || !profile?.name || greetAttempted.current) return;
 
@@ -40,26 +40,16 @@ export default function JarvisAssistant() {
         if (!hasGreeted) {
             greetAttempted.current = true;
             const greeting = getRespectfulGreeting({ name: profile.name, gender: profile.gender });
-            const greetingText = `${greeting}! Zayko mein aapka swagat hai. Bataye main aapke liye kya order karun?`;
+            const greetingText = `${greeting}! Zayko mein aapka swagat hai.`;
 
+            // Only speak on first user interaction (mobile requires user gesture)
             const playGreeting = () => {
                 sessionStorage.setItem("ziva_greeted", "true");
                 speak(greetingText);
                 window.removeEventListener("pointerdown", playGreeting);
             };
 
-            // 1. Try to play immediately (might be blocked by strict autoplay policies)
-            setTimeout(() => {
-                if (!sessionStorage.getItem("ziva_greeted")) {
-                    speak(greetingText).catch((err) => {
-                        console.warn("Autoplay blocked, waiting for interaction", err);
-                    });
-                }
-            }, 2000);
-
-            // 2. Attach to first user interaction as fallback
             window.addEventListener("pointerdown", playGreeting, { once: true });
-
             return () => window.removeEventListener("pointerdown", playGreeting);
         }
     }, [user, profile, speak]);
