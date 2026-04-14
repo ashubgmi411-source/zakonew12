@@ -40,7 +40,7 @@ export default function OrdersPage() {
     const [receiptOrder, setReceiptOrder] = useState<Order | null>(null);
 
     useEffect(() => {
-        if (!loading && !user) router.push("/auth");
+        if (!loading && !user) router.push("/auth?redirect=/orders");
     }, [user, loading, router]);
 
     useEffect(() => {

@@ -15,21 +15,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 
-// Yeh routes GUEST bhi dekh sakta hai (no login):
-const PUBLIC_ROUTES = [
-    "/",           // home/menu
-    "/menu",       // menu page
-    "/login",      // login page
-    "/auth",
-];
-
-// Yeh routes SIRF logged in users ke liye:
-const PROTECTED_ROUTES = [
-    "/orders",     // order history
-    "/wallet",     // wallet
-    "/profile",    // profile
-    "/cart",       // cart checkout
-];
+// NOTE: User-facing protected routes (/orders, /wallet, /profile, /cart)
+// are handled CLIENT-SIDE by each page's own useEffect auth guard.
+// The middleware does NOT redirect these routes because the auth-token
+// cookie may not be reliably available server-side (e.g. on first
+// navigation after login, or in production behind certain proxies).
 
 function decodeTokenRole(token: string, secret: string, expectedRole: string): boolean {
     try {
@@ -55,17 +45,6 @@ export function middleware(req: NextRequest) {
     // Check for auth-token cookie if Bearer token is not present
     if (!token) {
         token = req.cookies.get("auth-token")?.value || null;
-    }
-
-    // ─── Guest vs Protected route logic ───
-    const isProtected = PROTECTED_ROUTES.some(
-        route => pathname.startsWith(route)
-    );
-
-    if (isProtected && !token) {
-        return NextResponse.redirect(
-            new URL("/auth?redirect=" + pathname, req.url)
-        );
     }
 
     // ─── Admin route protection ───

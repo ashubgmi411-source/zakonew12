@@ -11,6 +11,7 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, where, orderBy, limit } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { BarChart3, Send, Plus, CreditCard, RefreshCcw, Package, CheckCircle } from "lucide-react";
 
 interface Transaction {
     id: string;
@@ -38,7 +39,7 @@ export default function WalletPage() {
     const [activeTab, setActiveTab] = useState<"history" | "transfer" | "add">("history");
 
     useEffect(() => {
-        if (!loading && !user) router.push("/auth");
+        if (!loading && !user) router.push("/auth?redirect=/wallet");
     }, [user, loading, router]);
 
     useEffect(() => {
@@ -195,9 +196,9 @@ export default function WalletPage() {
             <div className="sticky top-0 z-40 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-white/[0.06] px-4">
                 <div className="max-w-xl mx-auto flex">
                     {[
-                        { id: "history", label: "History", icon: "📊" },
-                        { id: "transfer", label: "Transfer", icon: "💸" },
-                        { id: "add", label: "Add Cash", icon: "➕" },
+                        { id: "history", label: "History", icon: <BarChart3 className="w-4 h-4" /> },
+                        { id: "transfer", label: "Transfer", icon: <Send className="w-4 h-4" /> },
+                        { id: "add", label: "Add Cash", icon: <Plus className="w-4 h-4" /> },
                     ].map((tab) => (
                         <button
                             key={tab.id}
@@ -309,7 +310,7 @@ export default function WalletPage() {
                                             </button>
                                         </div>
                                         {recipientName && (
-                                            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-emerald-400 font-bold mt-2 ml-1">✅ {recipientName}</motion.p>
+                                            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-1 text-xs text-emerald-400 font-bold mt-2 ml-1"><CheckCircle className="w-3 h-3" /> {recipientName}</motion.p>
                                         )}
                                     </div>
                                     <div>
@@ -337,7 +338,7 @@ export default function WalletPage() {
                                                 });
                                                 const data = await res.json();
                                                 if (res.ok) {
-                                                    toast.success("Sent successfully! 🚀");
+                                                    toast.success("Sent successfully!");
                                                     setRecipientCode(""); setRecipientName(null); setTransferAmount("");
                                                     setActiveTab("history");
                                                 } else toast.error(data.error || "Failed");
@@ -347,7 +348,7 @@ export default function WalletPage() {
                                         disabled={transferring || !recipientName || !transferAmount}
                                         className="w-full py-4 bg-emerald-500 text-zayko-950 rounded-2xl font-bold active:scale-[0.98] disabled:opacity-30 transition-all font-display shadow-lg shadow-emerald-500/10 mt-4"
                                     >
-                                        {transferring ? "Sending..." : `Send ₹${transferAmount || '0'} to ${recipientName?.split(' ')[0] || '...'} 💸`}
+                                        {transferring ? "Sending..." : <span className="flex items-center justify-center gap-2">Send ₹{transferAmount || '0'} to {recipientName?.split(' ')[0] || '...'} <Send className="w-4 h-4" /></span>}
                                     </button>
                                 </div>
                             </div>
@@ -364,8 +365,8 @@ export default function WalletPage() {
                             className="space-y-3"
                         >
                             {transactions.length === 0 ? (
-                                <div className="text-center py-20 bg-white/[0.02] rounded-3xl border border-white/[0.05]">
-                                    <span className="text-4xl opacity-20 block mb-4">🏜️</span>
+                                <div className="text-center py-20 bg-white/[0.02] rounded-3xl border border-white/[0.05] flex flex-col items-center">
+                                    <Package className="w-10 h-10 text-white/20 mb-4" />
                                     <p className="text-zayko-500 font-bold uppercase tracking-widest text-[10px]">No transaction history</p>
                                 </div>
                             ) : (
@@ -373,7 +374,7 @@ export default function WalletPage() {
                                     <div key={txn.id} className="bg-[var(--bg-elevated)]/40 border border-white/[0.06] p-4 rounded-2xl flex items-center justify-between hover:bg-[var(--bg-elevated)]/60 transition-all">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl bg-white/[0.03] border border-white/[0.05]`}>
-                                                {txn.type === "topup" || txn.type === "credit" ? "💳" : txn.type === "refund" ? "🔄" : txn.type === "transfer" ? "💸" : "🍱"}
+                                                {txn.type === "topup" || txn.type === "credit" ? <CreditCard className="w-5 h-5 text-gold-400" /> : txn.type === "refund" ? <RefreshCcw className="w-5 h-5 text-blue-400" /> : txn.type === "transfer" ? <Send className="w-5 h-5 text-emerald-400" /> : <Package className="w-5 h-5 text-zayko-400" />}
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="font-bold text-sm text-white truncate max-w-[150px]">{txn.description}</p>

@@ -31,7 +31,7 @@ export default function ProfilePage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && !user) router.push("/auth");
+        if (!loading && !user) router.push("/auth?redirect=/profile");
     }, [user, loading, router]);
 
     if (loading) {
