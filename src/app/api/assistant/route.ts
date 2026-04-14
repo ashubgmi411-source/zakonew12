@@ -195,6 +195,12 @@ export async function POST(req: NextRequest) {
         let responseJsonStr = "";
         let llmProvider = "none";
 
+        // Trim conversation history to last 6 messages to avoid token limits
+        const trimmedMessages = messages.slice(-6).map((m) => ({
+            role: m.role === "assistant" ? "assistant" as const : "user" as const,
+            content: m.content,
+        }));
+
         // Try Groq first (fastest)
         if (process.env.GROQ_API_KEY) {
             try {
@@ -208,33 +214,34 @@ export async function POST(req: NextRequest) {
                         model: "llama-3.1-8b-instant",
                         messages: [
                             { role: "system", content: systemPrompt },
-                            ...messages.map((m) => ({
-                                role: m.role === "assistant" ? "assistant" : "user",
-                                content: m.content,
-                            })),
+                            ...trimmedMessages,
                         ],
                         response_format: { type: "json_object" },
                         temperature: 0.3,
+                        max_tokens: 1024,
                     }),
                 });
                 if (res.ok) {
                     const data = await res.json();
                     responseJsonStr = data.choices?.[0]?.message?.content || "";
                     llmProvider = "groq";
+                } else {
+                    const errText = await res.text().catch(() => "");
+                    console.error(`[Assistant] Groq failed (${res.status}):`, errText.slice(0, 300));
                 }
             } catch (e) {
-                console.error("[Assistant] Groq error:", e);
+                console.error("[Assistant] Groq network error:", e);
             }
         }
 
-        // Fallback: Gemini
+        // Fallback 1: Gemini (primary key)
         if (!responseJsonStr && process.env.GEMINI_API_KEY) {
             try {
                 const apiKey = process.env.GEMINI_API_KEY;
                 const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-                const historyParts = messages.map((m) => ({
-                    role: m.role === "assistant" ? "model" : "user",
+                const historyParts = trimmedMessages.map((m) => ({
+                    role: m.role === "assistant" ? "model" as const : "user" as const,
                     parts: [{ text: m.content }],
                 }));
 
@@ -257,13 +264,99 @@ export async function POST(req: NextRequest) {
                     const data = await res.json();
                     responseJsonStr = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
                     llmProvider = "gemini";
+                } else {
+                    const errText = await res.text().catch(() => "");
+                    console.error(`[Assistant] Gemini failed (${res.status}):`, errText.slice(0, 300));
                 }
             } catch (e) {
-                console.error("[Assistant] Gemini error:", e);
+                console.error("[Assistant] Gemini network error:", e);
+            }
+        }
+
+        // Fallback 2: Gemini with rotation key
+        if (!responseJsonStr && process.env.GEMINI_KEYS) {
+            const keys = process.env.GEMINI_KEYS.split(",").map((k) => k.trim()).filter(Boolean);
+            for (const apiKey of keys) {
+                if (apiKey === process.env.GEMINI_API_KEY) continue; // Skip primary (already tried)
+                try {
+                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const historyParts = trimmedMessages.map((m) => ({
+                        role: m.role === "assistant" ? "model" as const : "user" as const,
+                        parts: [{ text: m.content }],
+                    }));
+
+                    if (historyParts.length > 0 && historyParts[0].role === "user") {
+                        historyParts[0].parts[0].text = systemPrompt + "\n\nUser: " + historyParts[0].parts[0].text;
+                    }
+
+                    const res = await fetch(endpoint, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: historyParts,
+                            generationConfig: {
+                                responseMimeType: "application/json",
+                                temperature: 0.3,
+                            },
+                        }),
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        responseJsonStr = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+                        if (responseJsonStr) {
+                            llmProvider = "gemini-rotation";
+                            break;
+                        }
+                    } else {
+                        const errText = await res.text().catch(() => "");
+                        console.error(`[Assistant] Gemini rotation key failed (${res.status}):`, errText.slice(0, 200));
+                    }
+                } catch (e) {
+                    console.error("[Assistant] Gemini rotation error:", e);
+                }
+            }
+        }
+
+        // Fallback 3: Groq rotation keys
+        if (!responseJsonStr && process.env.GROQ_KEYS) {
+            const keys = process.env.GROQ_KEYS.split(",").map((k) => k.trim()).filter(Boolean);
+            for (const key of keys) {
+                if (key === process.env.GROQ_API_KEY) continue; // Skip primary
+                try {
+                    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${key}`,
+                        },
+                        body: JSON.stringify({
+                            model: "llama-3.1-8b-instant",
+                            messages: [
+                                { role: "system", content: systemPrompt },
+                                ...trimmedMessages,
+                            ],
+                            response_format: { type: "json_object" },
+                            temperature: 0.3,
+                            max_tokens: 1024,
+                        }),
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        responseJsonStr = data.choices?.[0]?.message?.content || "";
+                        if (responseJsonStr) {
+                            llmProvider = "groq-rotation";
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    console.error("[Assistant] Groq rotation error:", e);
+                }
             }
         }
 
         if (!responseJsonStr) {
+            console.error("[Assistant] ALL LLM providers failed. GROQ_KEY set:", !!process.env.GROQ_API_KEY, "GEMINI_KEY set:", !!process.env.GEMINI_API_KEY);
             return NextResponse.json({
                 action: "UNAVAILABLE",
                 message: "Sorry yaar, AI services abhi down hain. Thodi der baad try karo! 🙏",
