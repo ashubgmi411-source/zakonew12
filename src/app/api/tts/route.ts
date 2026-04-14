@@ -1,33 +1,21 @@
 /**
- * TTS API — Amazon Polly / ElevenLabs proxy
+ * TTS API — ElevenLabs / Amazon Polly with strict timeout
  *
- * Keeps API keys server-side. Returns audio/mpeg stream.
- * Provider chain: Polly -> ElevenLabs -> Fallback to client browser TTS
+ * Provider chain: ElevenLabs -> Polly -> 503
+ * All providers have 4-second AbortController timeout.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { PollyClient, SynthesizeSpeechCommand } from "@aws-sdk/client-polly";
 
 export const runtime = "nodejs";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
-const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel - friendly female
 
 const hasPollyCreds =
     process.env.AWS_ACCESS_KEY_ID &&
     process.env.AWS_SECRET_ACCESS_KEY &&
     process.env.AWS_REGION;
-
-let pollyClient: PollyClient | null = null;
-if (hasPollyCreds) {
-    pollyClient = new PollyClient({
-        region: process.env.AWS_REGION,
-        credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
-        },
-    });
-}
 
 export async function POST(req: NextRequest) {
     try {
@@ -37,39 +25,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid text" }, { status: 400 });
         }
 
-        // Try Polly first
-        if (pollyClient) {
-            try {
-                const command = new SynthesizeSpeechCommand({
-                    Engine: "neural",
-                    LanguageCode: "hi-IN",
-                    VoiceId: "Kajal",   // Kajal = Hindi neural voice (Aditi is standard-only)
-                    OutputFormat: "mp3",
-                    Text: text,
-                    TextType: "text",
-                });
-
-                const response = await pollyClient.send(command);
-
-                if (response.AudioStream) {
-                    const audioBuffer = Buffer.from(await response.AudioStream.transformToByteArray());
-                    return new NextResponse(audioBuffer, {
-                        status: 200,
-                        headers: {
-                            "Content-Type": "audio/mpeg",
-                            "Cache-Control": "no-cache",
-                        },
-                    });
-                }
-            } catch (pollyError) {
-                console.error("Polly TTS failed, falling back to ElevenLabs:", pollyError);
-                // Fallthrough to ElevenLabs
-            }
-        }
-
-        // Fallback to ElevenLabs
+        // Try ElevenLabs first (more reliable, better voice)
         if (ELEVENLABS_API_KEY) {
             try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 4000);
+
                 const response = await fetch(
                     `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
                     {
@@ -84,12 +45,13 @@ export async function POST(req: NextRequest) {
                             voice_settings: {
                                 stability: 0.5,
                                 similarity_boost: 0.75,
-                                style: 0.3,
-                                use_speaker_boost: true,
                             },
                         }),
+                        signal: controller.signal,
                     }
                 );
+
+                clearTimeout(timeout);
 
                 if (response.ok) {
                     const audioBuffer = await response.arrayBuffer();
@@ -101,16 +63,63 @@ export async function POST(req: NextRequest) {
                         },
                     });
                 }
-                console.error("ElevenLabs error:", response.status, await response.text());
-            } catch (elError) {
-                console.error("ElevenLabs TTS error:", elError);
+                console.error("[TTS] ElevenLabs:", response.status);
+            } catch (elError: any) {
+                console.error("[TTS] ElevenLabs failed:", elError.message);
             }
         }
 
-        return NextResponse.json({ error: "All TTS providers failed" }, { status: 503 });
+        // Fallback: Polly (with strict timeout)
+        if (hasPollyCreds) {
+            try {
+                // Dynamic import to avoid loading SDK when not needed
+                const { PollyClient, SynthesizeSpeechCommand } = await import("@aws-sdk/client-polly");
+
+                const client = new PollyClient({
+                    region: process.env.AWS_REGION,
+                    credentials: {
+                        accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+                        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+                    },
+                });
+
+                const command = new SynthesizeSpeechCommand({
+                    Engine: "standard",
+                    LanguageCode: "hi-IN",
+                    VoiceId: "Aditi",
+                    OutputFormat: "mp3",
+                    Text: text,
+                    TextType: "text",
+                });
+
+                // Race against 4s timeout
+                const pollyResult = await Promise.race([
+                    client.send(command),
+                    new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error("Polly timeout 4s")), 4000)
+                    ),
+                ]);
+
+                if (pollyResult.AudioStream) {
+                    const audioBuffer = Buffer.from(await pollyResult.AudioStream.transformToByteArray());
+                    return new NextResponse(audioBuffer, {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "audio/mpeg",
+                            "Cache-Control": "no-cache",
+                        },
+                    });
+                }
+            } catch (pollyError: any) {
+                console.error("[TTS] Polly failed:", pollyError.message);
+            }
+        }
+
+        // Return 503 — client will use browser SpeechSynthesis
+        return NextResponse.json({ error: "TTS unavailable" }, { status: 503 });
 
     } catch (error) {
-        console.error("TTS API error:", error);
+        console.error("[TTS] API error:", error);
         return NextResponse.json({ error: "Internal error" }, { status: 500 });
     }
 }
