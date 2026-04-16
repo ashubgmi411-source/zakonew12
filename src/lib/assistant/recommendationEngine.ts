@@ -8,19 +8,17 @@
  * 4. Trending items (most ordered recently)
  */
 
-export interface MenuItemForRecommendation {
-    id: string;
-    name: string;
-    price: number;
-    category: string;
-    available: boolean;
-    quantity: number;
-    preparationTime?: number;
+export interface RecommendationFilters {
+    budget?: number;
+    category?: string;
+    maxTime?: number;
+    partySize?: number;
 }
 
 export interface RecommendationResult {
     personalPicks: MenuItemForRecommendation[];  // Based on user history
     timePicks: MenuItemForRecommendation[];       // Based on time of day
+    intentPicks: MenuItemForRecommendation[];     // Based on budget/time/category filters
     trendingPicks: MenuItemForRecommendation[];   // Most ordered
     message: string;                               // Conversational text
 }
@@ -89,17 +87,35 @@ function getCurrentTimeSlot(): TimeSlot {
  * @param userOrderHistory - Array of item names the user has ordered before
  * @param userName - User's first name for personalization
  * @param maxItems - Max items per category (default 3)
+ * @param filters - Optional budget, time, and category filters
  */
 export function generateRecommendations(
     menuItems: MenuItemForRecommendation[],
     userOrderHistory: string[],
     userName: string = "Guest",
-    maxItems: number = 3
+    maxItems: number = 3,
+    filters: RecommendationFilters = {}
 ): RecommendationResult {
     const available = menuItems.filter((m) => m.available && m.quantity > 0);
     const timeSlot = getCurrentTimeSlot();
 
-    // 1. TIME-BASED PICKS
+    // 1. INTENT-BASED PICKS (Highest Priority)
+    let intentPicks: MenuItemForRecommendation[] = [];
+    if (filters.budget || filters.maxTime || filters.category) {
+        intentPicks = available.filter((m) => {
+            let match = true;
+            if (filters.budget && m.price > filters.budget) match = false;
+            if (filters.maxTime && (m.preparationTime || 10) > filters.maxTime) match = false;
+            if (filters.category) {
+                const cat = (m.category || "").toLowerCase();
+                const target = filters.category.toLowerCase();
+                if (!cat.includes(target) && !target.includes(cat)) match = false;
+            }
+            return match;
+        }).slice(0, maxItems);
+    }
+
+    // 2. TIME-BASED PICKS
     const timePicks = available
         .filter((m) => {
             const cat = (m.category || "").toLowerCase();
@@ -107,36 +123,35 @@ export function generateRecommendations(
                 (pref) => cat.includes(pref) || pref.includes(cat)
             );
         })
+        .filter(m => !intentPicks.some(p => p.id === m.id)) // Avoid duplicates
         .slice(0, maxItems);
 
-    // 2. PERSONAL PICKS (from order history)
+    // 3. PERSONAL PICKS (from order history)
     const historyLower = userOrderHistory.map((n) => n.toLowerCase());
     const personalPicks = available
         .filter((m) => historyLower.includes(m.name.toLowerCase()))
+        .filter(m => !intentPicks.some(p => p.id === m.id))
         .slice(0, maxItems);
 
-    // 3. TRENDING PICKS (cheapest + available → popular proxy)
-    // In a real system, you'd count recent order frequency from Firestore
+    // 4. TRENDING PICKS
     const trendingPicks = [...available]
-        .sort((a, b) => {
-            // Prefer items with lower prep time (faster = more popular usually)
-            const prepA = a.preparationTime || 15;
-            const prepB = b.preparationTime || 15;
-            return prepA - prepB;
-        })
+        .sort((a, b) => (a.preparationTime || 15) - (b.preparationTime || 15))
+        .filter(m => !intentPicks.some(p => p.id === m.id) && !timePicks.some(p => p.id === m.id))
         .slice(0, maxItems);
 
-    // 4. BUILD MESSAGE
+    // 5. BUILD MESSAGE
     const firstName = userName.split(" ")[0] || "Guest";
     const message = buildRecommendationMessage(
         firstName,
         timeSlot,
         personalPicks,
         timePicks,
-        trendingPicks
+        trendingPicks,
+        intentPicks,
+        filters
     );
 
-    return { personalPicks, timePicks, trendingPicks, message };
+    return { personalPicks, timePicks, intentPicks, trendingPicks, message };
 }
 
 function buildRecommendationMessage(
@@ -144,35 +159,62 @@ function buildRecommendationMessage(
     timeSlot: TimeSlot,
     personalPicks: MenuItemForRecommendation[],
     timePicks: MenuItemForRecommendation[],
-    trendingPicks: MenuItemForRecommendation[]
+    trendingPicks: MenuItemForRecommendation[],
+    intentPicks: MenuItemForRecommendation[],
+    filters: RecommendationFilters
 ): string {
     const parts: string[] = [];
 
-    // Greeting based on time
+    // Greeting
     const greetings: Record<string, string> = {
-        morning: `Good morning ${name}! ☀️`,
-        afternoon: `${name}, lunch time ho gaya! 🍽️`,
-        evening: `${name}, aaj evening snack ka mood hai? 😋`,
-        night: `${name}, dinner time! 🌙`,
+        morning: `Subah ho gayi ${name}! ☀️`,
+        afternoon: `${name}, lunch ka time ho gaya hai. 🍽️`,
+        evening: `${name}, sham ki chai aur snacks? 😋`,
+        night: `${name}, dinner special bataun? 🌙`,
     };
     parts.push(greetings[timeSlot.label] || `Hey ${name}!`);
 
+    // Intent-based feedback
+    if (intentPicks.length > 0) {
+        const items = intentPicks.map((i) => `${i.name} (₹${i.price})`).join(", ");
+        if (filters.budget && filters.category) {
+            parts.push(`₹${filters.budget} ke andar best ${filters.category} options: ${items}`);
+        } else if (filters.budget) {
+            parts.push(`Tumhare ₹${filters.budget} budget mein ye badhiya options hain: ${items}`);
+        } else if (filters.maxTime) {
+            parts.push(`Sirf ${filters.maxTime} minutes mein ye ban jayenge: ${items} ⚡`);
+        } else if (filters.category) {
+            parts.push(`${filters.category} mein ye sabse popular hain: ${items}`);
+        }
+    } else if (filters.budget || filters.category || filters.maxTime) {
+        parts.push(`Oops, tumhari choice (under ₹${filters.budget || "any"}, ${filters.category || "any items"}, ${filters.maxTime || "any"} min) ke hisab se abhi kuch available nahi hai. Kuch aur try karein?`);
+    }
+
+    // Party logic
+    if (filters.partySize && filters.partySize > 1) {
+        const totalBudget = filters.budget || 500;
+        const perPerson = Math.floor(totalBudget / filters.partySize);
+        parts.push(`🎉 Party vibes! ${filters.partySize} logo ke liye per person ₹${perPerson} ka budget banta hai.`);
+        
+        // Suggest bulk items
+        const bulkItems = intentPicks.length > 0 ? intentPicks : timePicks;
+        if (bulkItems.length > 0) {
+            const item = bulkItems[0];
+            const count = filters.partySize;
+            parts.push(`Tum ${count} ${item.name} order kar sakte ho, total ₹${item.price * count} hoga. Value deal hai! 🤝`);
+        }
+    }
+
     // Personal picks
-    if (personalPicks.length > 0) {
+    if (personalPicks.length > 0 && intentPicks.length === 0) {
         const items = personalPicks.map((i) => i.name).join(", ");
-        parts.push(`Tumhari favourite — ${items} — available hai!`);
+        parts.push(`Tumhara purana favourite — ${items} — bhi ready hai!`);
     }
 
     // Time-based picks
-    if (timePicks.length > 0) {
-        const items = timePicks.map((i) => `${i.name} (₹${i.price})`).join(", ");
-        parts.push(`${timeSlot.label === "morning" ? "Breakfast" : timeSlot.label === "afternoon" ? "Lunch" : "Snacks"} ke liye try karo: ${items}`);
-    }
-
-    // Trending
-    if (trendingPicks.length > 0 && personalPicks.length === 0) {
-        const items = trendingPicks.map((i) => i.name).join(", ");
-        parts.push(`Trending abhi: ${items} 🔥`);
+    if (timePicks.length > 0 && intentPicks.length === 0) {
+        const items = timePicks.map((i) => i.name).join(", ");
+        parts.push(`${timeSlot.label === "morning" ? "Breakfast" : timeSlot.label === "afternoon" ? "Lunch" : "Snacks"} ke liye ye best rahega: ${items}`);
     }
 
     return parts.join("\n\n");
@@ -180,7 +222,6 @@ function buildRecommendationMessage(
 
 /**
  * Fetch user's order history item names from Firestore order data.
- * Call this from the API route with the raw orders array.
  */
 export function extractOrderHistoryItems(
     orders: Array<{ items: Array<{ name: string }> }>
@@ -193,3 +234,4 @@ export function extractOrderHistoryItems(
     }
     return Array.from(itemNames);
 }
+

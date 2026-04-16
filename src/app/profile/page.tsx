@@ -50,7 +50,6 @@ export default function ProfilePage() {
             items: [
                 { label: "Daily Needs", icon: <ClipboardList className="w-5 h-5" />, href: "/dashboard/daily-needs", detail: "Browse daily essentials" },
                 { label: "Suggestions", icon: <Vote className="w-5 h-5" />, href: "/suggestions", detail: "Vote for new items" },
-                { label: "Suggest an Item", icon: <Lightbulb className="w-5 h-5" />, href: "/dashboard/suggest-item", detail: "Request new menu items" },
                 { label: "Share Feedback", icon: <Star className="w-5 h-5" />, href: "/dashboard/feedback", detail: "Help us improve" },
             ]
         },
@@ -58,10 +57,11 @@ export default function ProfilePage() {
             title: "Shopping & Activity",
             items: [
                 { label: "My Orders", icon: <Package className="w-5 h-5" />, href: "/orders", detail: "Track & manage orders" },
-                { label: "My Daily Needs", icon: <UtensilsCrossed className="w-5 h-5" />, href: "/dashboard/my-daily-needs", detail: "Recurring meal plans" },
+                { label: "Suggest an Item", icon: <Lightbulb className="w-5 h-5" />, href: "/dashboard/suggest-item", detail: "Request new menu items" },
                 { label: "Wallet & Payments", icon: <Wallet className="w-5 h-5" />, href: "/wallet", detail: `Balance: ₹${profile.walletBalance}` },
             ]
         },
+
         {
             title: "Account Information",
             items: [

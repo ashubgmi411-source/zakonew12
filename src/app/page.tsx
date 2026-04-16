@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebase";
@@ -9,8 +9,6 @@ import TrendingCarousel from "@/components/TrendingCarousel";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import JarvisChat from "@/components/JarvisChat";
-import ScheduledOrderModal from "@/components/ScheduledOrderModal";
 import { Search, Wallet, Utensils, X, Salad } from "lucide-react";
 import { 
   GiPizzaSlice, GiHamburger, GiCoffeeCup, GiMeal, 
@@ -28,7 +26,7 @@ interface CanteenConfig {
 
 export default function MenuPage() {
   const { user, profile, loading } = useAuth();
-  const { itemCount, total, setIsCartOpen } = useCart();
+  const { itemCount, total } = useCart();
   const router = useRouter();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [search, setSearch] = useState("");
@@ -38,7 +36,6 @@ export default function MenuPage() {
   const [canteenConfig, setCanteenConfig] = useState<CanteenConfig | null>(null);
   const [categories, setCategories] = useState<CategoryDoc[]>([]);
   const [cartPulse, setCartPulse] = useState(false);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   useEffect(() => {
     // Note: Guest users can see the menu. They are redirected to login only when interacting with cart/orders.
@@ -119,20 +116,6 @@ export default function MenuPage() {
   const availableCount = menuItems.filter((i) => i.available).length;
   const availableItems = filteredItems.filter(i => i.available && i.quantity > 0);
   const unavailableItems = filteredItems.filter(i => !i.available || i.quantity <= 0);
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.06, delayChildren: 0.1 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 24, filter: "blur(4px)" },
-    show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const } }
-  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -273,39 +256,12 @@ export default function MenuPage() {
             </motion.button>
             {categories.map((cat) => {
               const icons: Record<string, React.JSX.Element> = {
-                // Core meals
                 breakfast: <GiBread />, lunch: <GiMeal />, dinner: <GiMeal />,
                 "indian-meals": <GiMeal />, thali: <GiMeal />, biryani: <GiMeal />,
-                // Fast food / street
                 "fast-food": <GiFrenchFries />, "street-food": <GiTacos />, snack: <GiFrenchFries />, snacks: <GiCupcake />,
-                // Specific cuisines
                 "chinese-food": <GiNoodles />, chinese: <GiNoodles />, "south-indian": <GiBread />,
-                "south-indians": <GiBread />, "north-indian": <GiMeal />,
-                // Popular items
-                pizza: <GiPizzaSlice />, burgers: <GiHamburger />, burger: <GiHamburger />,
-                sandwiches: <GiSandwich />, sandwich: <GiSandwich />,
-                "rolls-wraps": <GiTacos />, rolls: <GiTacos />, wraps: <GiTacos />,
-                "noodles-pasta": <GiNoodles />, noodles: <GiNoodles />, pasta: <GiNoodles />,
-                momos: <GiDumpling />, chaat: <GiMeal />,
-                // Parathas & bread
-                parathas: <GiBread />, paratha: <GiBread />, roti: <GiBread />, bread: <GiBread />,
-                // Healthy
-                "healthy-food": <Salad />, healthy: <Salad />, salad: <Salad />,
-                // Drinks
-                beverages: <GiWaterBottle />, beverage: <GiWaterBottle />,
-                "tea-coffee": <GiCoffeeCup />, "tea-&-coffee": <GiCoffeeCup />, tea: <GiTeapot />, coffee: <GiCoffeeCup />,
-                "fresh-juices": <GiWaterBottle />, "fresh-juice": <GiWaterBottle />, juice: <GiWaterBottle />, juices: <GiWaterBottle />,
-                smoothie: <GiWaterBottle />, shake: <GiWaterBottle />, lassi: <GiWaterBottle />,
-                // Frozen / Ice cream
-                "ice-cream": <GiIceCreamCone />, icecream: <GiIceCreamCone />, "ice-creams": <GiIceCreamCone />,
-                // Sweets / Desserts
-                desserts: <GiCupcake />, dessert: <GiCupcake />, sweets: <GiCupcake />, mithai: <GiCupcake />,
-                // Combos
-                combo: <GiMeal />, combos: <GiMeal />, "meal-combo": <GiMeal />,
-                // Extras
-                extras: <GiMeal />, sides: <Salad />, dips: <GiMeal />,
-                // Fallback
-                default: <Utensils />,
+                "healthy-food": <Salad />, beverages: <GiWaterBottle />, smoothie: <GiWaterBottle />,
+                default: <Utensils />
               };
               const icon = icons[cat.slug] || icons["default"];
               const isActive = category === cat.slug;
@@ -317,7 +273,7 @@ export default function MenuPage() {
                   whileHover={{ scale: 1.04, y: -2 }}
                   className={`flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap transition-all duration-300 shrink-0 min-w-[72px] border ${
                     isActive
-                      ? "bg-gradient-to-br from-gold-400 to-gold-500 text-zayko-900 border-gold-400/40 shadow-[0_4px_20px_rgba(251,191,36,0.35)]"
+                      ? "bg-gradient-to-br from-gold-400 to-gold-500 text-zayko-900 border-gold-400/40 shadow-[0_4px_20_rgba(251,191,36,0.35)]"
                       : "bg-white/[0.04] text-zayko-300 border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]"
                   }`}
                 >
@@ -330,7 +286,6 @@ export default function MenuPage() {
             })}
           </div>
 
-          {/* Item count + Colorful toggle */}
           <div className="flex items-center justify-between">
             <p className="text-[10px] sm:text-xs text-zayko-500 font-medium">{availableCount} items available</p>
             <button
@@ -358,9 +313,6 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════
-          TRENDING NOW — Animated Carousel (One at a time)
-         ══════════════════════════════════════ */}
       {availableItems.length > 0 && !search && category === "all" && (
         <motion.section
           className="mt-4 mb-4 relative z-10"
@@ -376,140 +328,53 @@ export default function MenuPage() {
                 <p className="text-[10px] sm:text-xs text-zayko-500">Most popular this week</p>
               </div>
             </div>
-            <motion.span
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-[10px] sm:text-xs font-bold text-gold-400 bg-gold-400/10 px-3 py-1 rounded-full border border-gold-400/20"
-            >
-              🔥 HOT
-            </motion.span>
           </div>
-
           <TrendingCarousel items={availableItems} />
         </motion.section>
       )}
 
-      {/* ══════════════════════════════════════
-          MENU GRID — Premium Layout
-         ══════════════════════════════════════ */}
       <div className="px-4 sm:px-6 max-w-7xl mx-auto mt-5 sm:mt-6 space-y-8 sm:space-y-10 relative z-10">
         {menuLoading ? (
-          /* Premium Loading Skeleton */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="rounded-2xl overflow-hidden">
-                <div className="skeleton-premium aspect-[4/3]" />
-                <div className="p-4 space-y-2 bg-zayko-800/30">
-                  <div className="skeleton-premium h-4 w-3/4" />
-                  <div className="skeleton-premium h-3 w-1/2" />
-                  <div className="skeleton-premium h-10 w-full mt-3" />
-                </div>
-              </div>
+              <div key={i} className="rounded-2xl overflow-hidden animate-pulse bg-white/5 h-64" />
             ))}
           </div>
         ) : filteredItems.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className="text-center py-16 sm:py-20 premium-glass-card"
-          >
-            <div className="text-5xl sm:text-6xl mb-3">🍽️</div>
-            <h3 className="text-lg sm:text-xl font-display font-bold text-white mb-1">No items found</h3>
-            <p className="text-sm text-zayko-400">
-              {search ? `No results for "${search}"` : "The menu is empty right now"}
-            </p>
-          </motion.div>
+          <div className="text-center py-16">
+            <h3 className="text-lg font-bold text-white">No items found</h3>
+          </div>
         ) : (
           <>
-            {/* ── Available Section ── */}
             {availableItems.length > 0 && (
               <section>
-                <motion.div
-                  className="flex items-center gap-3 mb-5"
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                >
-                  <div className="w-1 h-7 bg-gradient-to-b from-emerald-400 to-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.4)]" />
-                  <h2 className="text-lg sm:text-xl font-display font-bold text-white">Available Now</h2>
-                  <span className="text-[10px] sm:text-xs text-emerald-400/70 bg-emerald-400/10 px-2 py-0.5 rounded-full font-semibold">{availableItems.length}</span>
-                </motion.div>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="w-1 h-7 bg-emerald-400 rounded-full" />
+                  <h2 className="text-lg font-bold text-white">Available Now</h2>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                   {availableItems.map((item, index) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, y: 40 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-50px" }}
-                      transition={{
-                        duration: 0.5,
-                        ease: "easeOut",
-                        delay: Math.min(index * 0.08, 0.4) // cap delay
-                      }}
-                    >
-                      <MenuCard {...item} index={index} />
-                    </motion.div>
+                    <MenuCard key={item.id} {...item} index={index} />
                   ))}
                 </div>
               </section>
             )}
-
-            {/* ── Unavailable Section ── */}
             {showUnavailable && unavailableItems.length > 0 && (
               <section>
-                <motion.div
-                  className="flex items-center gap-3 mb-5 pt-4 sm:pt-6 border-t border-white/[0.04]"
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                >
+                <div className="flex items-center gap-3 mb-5 pt-6 border-t border-white/5">
                   <div className="w-1 h-7 bg-zayko-600 rounded-full" />
-                  <h2 className="text-lg sm:text-xl font-display font-bold text-zayko-300">Not Available</h2>
-                  <span className="text-[10px] sm:text-xs text-zayko-500 bg-white/[0.04] px-2 py-0.5 rounded-full font-semibold">{unavailableItems.length}</span>
-                </motion.div>
+                  <h2 className="text-lg font-bold text-zayko-300">Not Available</h2>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                   {unavailableItems.map((item, index) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, y: 40 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: "-50px" }}
-                      transition={{
-                        duration: 0.5,
-                        ease: "easeOut",
-                        delay: Math.min(index * 0.08, 0.4) // cap delay
-                      }}
-                    >
-                      <MenuCard {...item} index={availableItems.length + index} />
-                    </motion.div>
+                    <MenuCard key={item.id} {...item} index={index} />
                   ))}
                 </div>
               </section>
-            )}
-
-            {showUnavailable && unavailableItems.length === 0 && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-zayko-400 italic text-sm text-center py-4"
-              >
-                All items are available! 🎉
-              </motion.p>
             )}
           </>
         )}
       </div>
-
-
-
-      {/* Scheduled Order Modal */}
-      <ScheduledOrderModal
-        isOpen={showScheduleModal}
-        onClose={() => setShowScheduleModal(false)}
-      />
     </div>
   );
 }

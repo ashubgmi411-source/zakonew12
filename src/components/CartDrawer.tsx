@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Utensils, Trash2, Sparkles, Wallet, ArrowRight, X } from "lucide-react";
+import { ShoppingCart, Utensils, Trash2, Sparkles, Wallet, ArrowRight, X, Calendar } from "lucide-react";
 import { GiCoffeeCup, GiDonut, GiMeal } from "react-icons/gi";
 
 export default function CartDrawer() {
     const { user, profile, loading } = useAuth();
-    const { items, updateQuantity, removeItem, clearCart, total, itemCount, isCartOpen, setIsCartOpen } = useCart();
+    const { items, updateQuantity, removeItem, clearCart, total, itemCount, isCartOpen, setIsCartOpen, isScheduleModalOpen, setIsScheduleModalOpen } = useCart();
     const router = useRouter();
 
     if (!isCartOpen || !user) return null;
@@ -212,22 +212,39 @@ export default function CartDrawer() {
                                     </div>
                                 </div>
 
-                                <motion.button
-                                    initial={{ scale: 0.95, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    onClick={handlePlaceOrder}
-                                    disabled={(profile?.walletBalance || 0) < total}
-                                    className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all font-display font-bold text-sm active:scale-95 disabled:opacity-50 disabled:shadow-none shadow-lg"
-                                    style={{ background: "var(--btn-primary)", color: "#FFF", boxShadow: "0 4px 15px var(--accent-glow)" }}
-                                >
-                                    <div className="flex flex-col items-start leading-none">
-                                        <span>Place Order</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span>₹{total}</span>
-                                        <ArrowRight className="w-4 h-4" />
-                                    </div>
-                                </motion.button>
+                                <div className="flex flex-col gap-2">
+                                    <motion.button
+                                        initial={{ scale: 0.95, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        onClick={() => {
+                                            setIsCartOpen(false);
+                                            setIsScheduleModalOpen(true);
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl border transition-all font-bold text-xs active:scale-95"
+                                        style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                                    >
+                                        <Calendar className="w-4 h-4 text-gold-400" />
+                                        <span>Schedule for Later</span>
+                                    </motion.button>
+
+                                    <motion.button
+                                        initial={{ scale: 0.95, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        onClick={handlePlaceOrder}
+                                        disabled={(profile?.walletBalance || 0) < total}
+                                        className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all font-display font-bold text-sm active:scale-95 disabled:opacity-50 disabled:shadow-none shadow-lg"
+                                        style={{ background: "var(--btn-primary)", color: "#FFF", boxShadow: "0 4px 15px var(--accent-glow)" }}
+                                    >
+                                        <div className="flex flex-col items-start leading-none">
+                                            <span>Place Order</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span>₹{total}</span>
+                                            <ArrowRight className="w-4 h-4" />
+                                        </div>
+                                    </motion.button>
+                                </div>
+
                             </div>
                         )}
                     </motion.div>

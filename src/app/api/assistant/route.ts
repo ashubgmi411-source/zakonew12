@@ -100,6 +100,9 @@ export async function POST(req: NextRequest) {
         const { emotion } = detectEmotion(lastUserMsg);
         const language = detectLanguage(lastUserMsg);
 
+        // ─── Step 2.5: Intent / Filter detection ───
+        const filters = detectFilters(lastUserMsg);
+
         // ─── Step 3: Fetch live menu ───
         const menuSnap = await adminDb.collection("menuItems").get();
         const liveMenu = menuSnap.docs.map((doc) => ({
@@ -140,21 +143,22 @@ export async function POST(req: NextRequest) {
                 .orderBy("createdAt", "desc")
                 .limit(10)
                 .get();
-            const orders = ordersSnap.docs.map((d) => d.data() as { items: Array<{ name: string }> });
-            orderHistory = extractOrderHistoryItems(orders);
+            const rawOrders = ordersSnap.docs.map((d) => d.data() as { items: Array<{ name: string }> });
+            orderHistory = extractOrderHistoryItems(rawOrders);
 
-            // Pre-generate recommendation text
+            // Generate smart recommendations with filters
             const recs = generateRecommendations(
                 availableMenu as MenuItemForRecommendation[],
                 orderHistory,
                 userName,
-                3
+                3,
+                filters
             );
             if (recs.message) {
                 recommendationHint = recs.message;
             }
-        } catch {
-            // Order history not critical — continue without it
+        } catch (e) {
+            console.warn("[Assistant] Rec error:", e);
         }
 
         // ─── Step 7: Get canteen status ───
@@ -172,10 +176,10 @@ export async function POST(req: NextRequest) {
         } catch { /* default */ }
 
         // ─── Step 8: Build the super system prompt ───
-        // Compact menu format: "Name ₹Price (Category)" — saves ~50% tokens vs verbose format
+        // Enhanced menu format: "Name ₹Price [Cat|Min]" — eliminate hallucinations
         const menuListStr = availableMenu
-            .slice(0, 25) // Limit to 25 items to save tokens
-            .map((m) => `${m.name} ₹${m.price}`)
+            .slice(0, 40) // Increased limit to 40 items
+            .map((m) => `${m.name} ₹${m.price} [${m.category}|${m.preparationTime}m]`)
             .join(", ");
 
         const contextSummary = buildContextSummary(uid) + (contextHint ? `\n${contextHint}` : "");
@@ -192,6 +196,7 @@ export async function POST(req: NextRequest) {
             canteenIsOpen,
             canteenTiming,
         });
+
 
         // ─── Step 9: Call LLM (Gemini first — 1M TPM free tier vs Groq 6K TPM) ───
         let responseJsonStr = "";
@@ -626,3 +631,56 @@ function stripEmojis(text: string): string {
         ""
     ).replace(/\s+/g, " ").trim();
 }
+
+/**
+ * Detect filters (budget, time, category, party) from user message.
+ * Zero-cost regex/keyword extraction.
+ */
+function detectFilters(text: string) {
+    const low = text.toLowerCase();
+    const filters: any = {};
+
+    // 1. Budget Detection (e.g., "200rs", "budget 500", "under 100")
+    const budgetMatch = text.match(/(\d+)\s*(rs|rupees|rp|bucks|budget)/i) 
+                  || text.match(/(under|below|mein|budget)\s*(\d+)/i);
+    if (budgetMatch) {
+        filters.budget = parseInt(budgetMatch[1] === "under" || budgetMatch[1] === "below" || budgetMatch[1] === "mein" || budgetMatch[1] === "budget" ? budgetMatch[2] : budgetMatch[1]);
+    }
+
+    // 2. Time Detection (e.g., "10 min", "5 minutes", "jaldi")
+    const timeMatch = text.match(/(\d+)\s*(min|minute|minutes|m)/i);
+    if (timeMatch) {
+        filters.maxTime = parseInt(timeMatch[1]);
+    } else if (low.includes("jaldi") || low.includes("quick") || low.includes("fast")) {
+        filters.maxTime = 10; // Default "quick" threshold
+    }
+
+    // 3. Category Detection
+    const categories = [
+        "breakfast", "beverage", "fast food", "indian meals", "street food", 
+        "chinese", "pizza", "burger", "sandwich", "south indian", "snack",
+        "juice", "shake", "tea", "coffee", "ice cream"
+    ];
+    for (const cat of categories) {
+        if (low.includes(cat)) {
+            filters.category = cat;
+            break;
+        }
+    }
+    // Specific Hinglish/Alternate category names
+    if (!filters.category) {
+        if (low.includes("peene") || low.includes("drink") || low.includes("thirsty")) filters.category = "beverage";
+        if (low.includes("nashta") || low.includes("morning")) filters.category = "breakfast";
+        if (low.includes("khana") || low.includes("thali") || low.includes("lunch")) filters.category = "indian meals";
+    }
+
+    // 4. Party/Group Detection (e.g., "5 log", "10 bande", "party for 4")
+    const partyMatch = text.match(/(\d+)\s*(log|bande|people|friends|jan|person|members)/i)
+                  || text.match(/(party|group|for)\s*(\d+)/i);
+    if (partyMatch) {
+        filters.partySize = parseInt(partyMatch[1] === "party" || partyMatch[1] === "group" || partyMatch[1] === "for" ? partyMatch[2] : partyMatch[1]);
+    }
+
+    return filters;
+}
+

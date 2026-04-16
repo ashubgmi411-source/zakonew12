@@ -12,6 +12,8 @@ import IntroProvider from "@/components/IntroProvider";
 import UserThemeWrapper from "@/components/UserThemeWrapper";
 import { Toaster } from "react-hot-toast";
 import Script from "next/script";
+import GlobalModals from "@/components/GlobalModals";
+
 
 export const metadata: Metadata = {
   title: "Zayko 2.O",
@@ -47,6 +49,7 @@ export default function RootLayout({
                 <MobileBottomNav />
                 <JarvisChat />
                 <JarvisAssistant />
+                <GlobalModals />
               </IntroProvider>
               <Toaster
                 position="top-right"
