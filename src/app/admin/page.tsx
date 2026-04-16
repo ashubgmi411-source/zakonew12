@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { Lock, Rocket } from "lucide-react";
 
 export default function AdminLoginPage() {
     const router = useRouter();
@@ -27,7 +28,7 @@ export default function AdminLoginPage() {
             const data = await res.json();
             if (data.success) {
                 localStorage.setItem("adminToken", data.token);
-                toast.success("Welcome, Admin! 🎉");
+                toast.success("Welcome, Admin!");
                 router.push("/admin/dashboard");
             } else {
                 toast.error(data.error || "Invalid credentials");
@@ -42,8 +43,8 @@ export default function AdminLoginPage() {
         <div className="min-h-screen bg-zayko-900 flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 <div className="text-center mb-8 animate-fade-in">
-                    <div className="w-20 h-20 bg-gold-500/20 backdrop-blur-xl rounded-2xl flex items-center justify-center mx-auto mb-4 text-4xl">
-                        🔐
+                    <div className="w-20 h-20 bg-gold-500/20 backdrop-blur-xl rounded-2xl flex items-center justify-center mx-auto mb-4 text-gold-400">
+                        <Lock className="w-10 h-10" />
                     </div>
                     <h1 className="text-3xl font-display font-bold text-white">Admin Portal</h1>
                     <p className="text-zayko-400 mt-1">Zayko Management</p>
@@ -78,7 +79,7 @@ export default function AdminLoginPage() {
                         {loading ? (
                             <div className="w-5 h-5 border-2 border-zayko-900 border-t-transparent rounded-full animate-spin"></div>
                         ) : (
-                            <>Sign In 🚀</>
+                            <>Sign In <Rocket className="w-4 h-4 ml-1" /></>
                         )}
                     </button>
                 </form>

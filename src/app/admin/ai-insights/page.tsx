@@ -5,15 +5,13 @@ import AdminGuard from "@/components/AdminGuard";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Cell,
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
+import { 
+    Brain, RefreshCw, Sparkles, Calendar, 
+    BarChart3, Flame, AlertTriangle, TrendingDown, 
+    CheckCircle2, ShoppingCart, ArrowLeft 
+} from "lucide-react";
 import type { DailyCookingPlan } from "@/types";
 
 const BAR_COLORS = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#ef4444"];
@@ -76,52 +74,14 @@ export default function AIInsightsPage() {
     const sortedItems = [...(plan?.items || [])].sort((a, b) => b.predictedQuantity - a.predictedQuantity);
 
     return (
-        <AdminGuard>
-            <div className="min-h-screen bg-zayko-900 pb-12">
-                {/* Header */}
-                <div className="bg-zayko-800 border-b border-zayko-700 px-6 py-4">
-                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <Link href="/admin/dashboard" className="text-zayko-400 hover:text-white transition-colors text-sm">
-                                ← Dashboard
-                            </Link>
-                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-xl">
-                                🧠
-                            </div>
-                            <div>
-                                <h1 className="text-lg font-display font-bold text-white">
-                                    Ziva 2.0 Brain
-                                </h1>
-                                <p className="text-xs text-zayko-400">
-                                    AI Cooking Plan & Insights
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={regeneratePlan}
-                            disabled={generating || loading}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-400 rounded-xl text-sm font-semibold hover:bg-purple-500/30 transition-all disabled:opacity-50"
-                        >
-                            {generating ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                                    Parsing Data...
-                                </>
-                            ) : (
-                                <>🔄 Regenerate Plan</>
-                            )}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="max-w-7xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-6">
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
                             <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin" />
                         </div>
                     ) : !plan ? (
-                        <div className="text-center py-20 bg-zayko-800/50 rounded-2xl border border-zayko-700">
-                            <span className="text-5xl block mb-4">🔮</span>
+                        <div className="text-center py-20 bg-zayko-800/50 rounded-2xl border border-zayko-700 flex flex-col items-center">
+                            <Sparkles className="w-16 h-16 text-purple-500/40 mb-4" />
                             <h2 className="text-lg font-bold text-white mb-2">No Cooking Plan Found</h2>
                             <p className="text-sm text-zayko-400 mb-6">Ziva hasn't generated a plan for today.</p>
                             <button
@@ -137,7 +97,7 @@ export default function AIInsightsPage() {
                             <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4">
                                 <div>
                                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                                        📅 Plan for {plan.date}
+                                        <Calendar className="w-5 h-5 text-purple-400" /> Plan for {plan.date}
                                         <span className="text-[10px] font-mono bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded uppercase">
                                             {plan.provider}
                                         </span>
@@ -162,8 +122,8 @@ export default function AIInsightsPage() {
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                                 {/* Bar Chart */}
                                 <div className="lg:col-span-2 bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6">
-                                    <h3 className="text-lg font-display font-bold text-white mb-4">
-                                        📊 Predicted Demand
+                                    <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
+                                        <BarChart3 className="w-5 h-5 text-purple-400" /> Predicted Demand
                                     </h3>
                                     {sortedItems.length > 0 ? (
                                         <ResponsiveContainer width="100%" height={300}>
@@ -190,7 +150,7 @@ export default function AIInsightsPage() {
                                 {/* Trending List */}
                                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6">
                                     <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
-                                        🔥 Trending Items
+                                        <Flame className="w-5 h-5 text-orange-500" /> Trending Items
                                     </h3>
                                     {plan.trendingItems.length > 0 ? (
                                         <div className="space-y-3">
@@ -214,7 +174,7 @@ export default function AIInsightsPage() {
                                 {/* Low Stock Alerts */}
                                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6">
                                     <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
-                                        ⚠️ Low Stock Alerts
+                                        <AlertTriangle className="w-5 h-5 text-red-400" /> Low Stock Alerts
                                     </h3>
                                     {plan.lowStockAlerts.length > 0 ? (
                                         <div className="space-y-3">
@@ -224,13 +184,13 @@ export default function AIInsightsPage() {
                                                         <p className="text-sm font-bold text-red-400">{alert.itemName}</p>
                                                         <p className="text-xs text-red-400/70">Remaining: {alert.currentStock} {alert.unit}</p>
                                                     </div>
-                                                    <span className="text-xl">📉</span>
+                                                    <TrendingDown className="w-6 h-6 text-red-400/50" />
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center">
-                                            <span className="text-2xl block mb-1">✅</span>
+                                        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-center flex flex-col items-center">
+                                            <CheckCircle2 className="w-8 h-8 text-emerald-500 mb-2" />
                                             <p className="text-sm text-emerald-400 font-bold">Stock levels are healthy</p>
                                         </div>
                                     )}
@@ -239,7 +199,7 @@ export default function AIInsightsPage() {
                                 {/* Purchase Recommendations */}
                                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6">
                                     <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
-                                        🛒 Purchase Plan
+                                        <ShoppingCart className="w-5 h-5 text-blue-400" /> Purchase Plan
                                     </h3>
                                     {plan.purchaseRecommendations.length > 0 ? (
                                         <div className="space-y-3">
@@ -265,7 +225,5 @@ export default function AIInsightsPage() {
                         </div>
                     )}
                 </div>
-            </div>
-        </AdminGuard>
     );
 }

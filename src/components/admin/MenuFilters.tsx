@@ -114,7 +114,10 @@ export default function MenuFilters({
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 {/* Category */}
                 <div className="flex items-center gap-2">
-                    <label className="text-zayko-400 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
+                    <label 
+                        className="text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                        style={{ color: 'var(--brand-gold)' }}
+                    >
                         Category
                     </label>
                     <select
@@ -132,7 +135,10 @@ export default function MenuFilters({
 
                 {/* Availability */}
                 <div className="flex items-center gap-2">
-                    <label className="text-zayko-400 text-xs font-semibold uppercase tracking-wider whitespace-nowrap">
+                    <label 
+                        className="text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                        style={{ color: 'var(--brand-gold)' }}
+                    >
                         Status
                     </label>
                     <select
@@ -152,11 +158,11 @@ export default function MenuFilters({
 
                 {/* Results count + clear all */}
                 <div className="sm:ml-auto flex items-center gap-3">
-                    <span className="text-zayko-500 text-xs">
+                    <span className="text-zayko-400 text-xs font-medium">
                         Showing{" "}
-                        <span className="text-zayko-300 font-semibold">{filteredCount}</span>{" "}
+                        <span className="text-zayko-200 font-bold">{filteredCount}</span>{" "}
                         of{" "}
-                        <span className="text-zayko-300 font-semibold">{totalCount}</span>{" "}
+                        <span className="text-zayko-200 font-bold">{totalCount}</span>{" "}
                         items
                     </span>
                     {isFiltered && (

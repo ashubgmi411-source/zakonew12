@@ -344,9 +344,17 @@ export default function JarvisAssistant() {
                         className="pointer-events-auto bg-zayko-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-4 sm:w-[320px] shadow-[0_20px_40px_rgba(0,0,0,0.5),_0_0_30px_rgba(251,191,36,0.1)] flex flex-col gap-3"
                     >
                         <div className="flex justify-between items-center px-1">
-                            <h3 className="text-white font-bold text-sm tracking-wide flex items-center gap-2">
-                                <span className="text-xl">🎙️</span> Zayko Assistant
-                            </h3>
+                            <div className="flex flex-col">
+                                <h3 className="text-white font-bold text-sm tracking-wide flex items-center gap-2">
+                                    <span className="text-xl">🎙️</span> Ziva AI
+                                </h3>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <div className={`w-1.5 h-1.5 rounded-full ${activeProvider.includes("nvidia") ? "bg-emerald-400 animate-pulse" : "bg-blue-400"}`} />
+                                    <span className="text-[10px] text-zayko-400 font-bold uppercase tracking-widest">
+                                        {activeProvider.includes("nvidia") ? "NVIDIA NIM AI" : "Standard Voice"}
+                                    </span>
+                                </div>
+                            </div>
                             <button
                                 onClick={() => setIsOpen(false)}
                                 className="w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-zayko-400 hover:text-white hover:bg-white/10 transition-all"

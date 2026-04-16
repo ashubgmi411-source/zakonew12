@@ -4,8 +4,18 @@ import AdminGuard from "@/components/AdminGuard";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
-const CAT_ICONS: Record<string, string> = {
-    "Food Quality": "🍽️", "Service": "🤝", "App Issue": "📱", "Suggestion": "💡", "Other": "💬",
+import { 
+    Star, ArrowLeft, RefreshCw, ClipboardList, Clock, 
+    BarChart3, Inbox, CheckCircle2, MessageSquare, 
+    Utensils, Handshake, Smartphone, Lightbulb 
+} from "lucide-react";
+
+const CAT_ICONS: Record<string, React.ReactNode> = {
+    "Food Quality": <Utensils className="w-4 h-4" />, 
+    "Service": <Handshake className="w-4 h-4" />, 
+    "App Issue": <Smartphone className="w-4 h-4" />, 
+    "Suggestion": <Lightbulb className="w-4 h-4" />, 
+    "Other": <MessageSquare className="w-4 h-4" />,
 };
 
 interface FeedbackItem {
@@ -93,16 +103,20 @@ export default function AdminFeedbackPage() {
                 <div className="bg-zayko-800 border-b border-zayko-700 px-6 py-4">
                     <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <Link href="/admin/dashboard" className="text-zayko-400 hover:text-white transition-colors text-sm">← Dashboard</Link>
-                            <div className="w-10 h-10 rounded-xl bg-gold-500/20 flex items-center justify-center text-xl">⭐</div>
+                            <Link href="/admin/dashboard" className="flex items-center gap-1 text-zayko-400 hover:text-white transition-colors text-sm">
+                                <ArrowLeft className="w-4 h-4" /> Dashboard
+                            </Link>
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-xl text-blue-400">
+                                <Smartphone className="w-6 h-6" />
+                            </div>
                             <div>
-                                <h1 className="text-lg font-display font-bold text-white">Feedback Analytics</h1>
-                                <p className="text-xs text-zayko-400">User satisfaction & insights</p>
+                                <h1 className="text-lg font-display font-bold text-white">App Feedback</h1>
+                                <p className="text-xs text-zayko-400">Bugs, suggestions & app issues</p>
                             </div>
                         </div>
                         <button onClick={() => { setLoading(true); fetchData(); }}
-                            className="px-4 py-2 bg-gold-500/20 text-gold-400 rounded-xl text-sm font-semibold hover:bg-gold-500/30 transition-all">
-                            🔄 Refresh
+                            className="flex items-center gap-2 px-4 py-2 bg-gold-500/20 text-gold-400 rounded-xl text-sm font-semibold hover:bg-gold-500/30 transition-all">
+                            <RefreshCw className="w-4 h-4" /> Refresh
                         </button>
                     </div>
                 </div>
@@ -118,14 +132,14 @@ export default function AdminFeedbackPage() {
                             {analytics && (
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in">
                                     {[
-                                        { label: "Avg Rating", value: `${analytics.avgRating} ★`, icon: "⭐", color: analytics.avgRating >= 4 ? "text-emerald-400" : analytics.avgRating >= 3 ? "text-yellow-400" : "text-red-400" },
-                                        { label: "Total Feedbacks", value: analytics.total, icon: "📋", color: "text-blue-400" },
-                                        { label: "Top Category", value: analytics.topCategory, sub: `${analytics.topCategoryCount} feedbacks`, icon: CAT_ICONS[analytics.topCategory] || "💬", color: "text-gold-400" },
-                                        { label: "Pending Review", value: analytics.pending, icon: "⏳", color: analytics.pending > 0 ? "text-yellow-400" : "text-emerald-400" },
+                                        { label: "Avg Rating", value: `${analytics.avgRating} ★`, icon: <Star className="w-5 h-5 fill-current" />, color: analytics.avgRating >= 4 ? "text-emerald-400" : analytics.avgRating >= 3 ? "text-yellow-400" : "text-red-400" },
+                                        { label: "Total Feedbacks", value: analytics.total, icon: <ClipboardList className="w-5 h-5" />, color: "text-blue-400" },
+                                        { label: "Top Category", value: analytics.topCategory, sub: `${analytics.topCategoryCount} feedbacks`, icon: CAT_ICONS[analytics.topCategory] || <MessageSquare className="w-5 h-5" />, color: "text-gold-400" },
+                                        { label: "Pending Review", value: analytics.pending, icon: <Clock className="w-5 h-5" />, color: analytics.pending > 0 ? "text-yellow-400" : "text-emerald-400" },
                                     ].map((c) => (
                                         <div key={c.label} className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <span className="text-lg">{c.icon}</span>
+                                                <span className={c.color}>{c.icon}</span>
                                                 <span className="text-xs text-zayko-400">{c.label}</span>
                                             </div>
                                             <p className={`text-xl font-display font-bold ${c.color} truncate`}>{c.value}</p>
@@ -138,7 +152,9 @@ export default function AdminFeedbackPage() {
                             {/* ─── Rating Distribution ─── */}
                             {analytics && (
                                 <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-5 mb-8 animate-slide-up">
-                                    <h3 className="text-sm font-bold text-white mb-3">📊 Rating Distribution</h3>
+                                    <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                                        <BarChart3 className="w-4 h-4 text-gold-400" /> Rating Distribution
+                                    </h3>
                                     <div className="space-y-2">
                                         {[5, 4, 3, 2, 1].map((r) => {
                                             const count = analytics.ratingDistribution[r] || 0;
@@ -184,18 +200,23 @@ export default function AdminFeedbackPage() {
                                     <span className="text-xs text-zayko-400 font-semibold ml-2">Status:</span>
                                     {(["all", "new", "reviewed"] as FilterStatus[]).map((s) => (
                                         <button key={s} onClick={() => setFilterStatus(s)}
-                                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${filterStatus === s ? "bg-gold-500 text-zayko-900" : "bg-white/5 text-zayko-400 border border-white/10"}`}>
-                                            {s === "all" ? "All" : s === "new" ? "⏳ Pending" : "✅ Reviewed"}
+                                            className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
+                                            style={{
+                                                backgroundColor: filterStatus === s ? "var(--gold-500)" : "rgba(255,255,255,0.05)",
+                                                color: filterStatus === s ? "#0c1222" : "var(--zayko-400)",
+                                                border: filterStatus === s ? "none" : "1px solid rgba(255,255,255,0.1)"
+                                            }}>
+                                            {s === "all" ? "All" : s === "new" ? <><Clock className="w-3 h-3" /> Pending</> : <><CheckCircle2 className="w-3 h-3" /> Reviewed</>}
                                         </button>
                                     ))}
                                 </div>
                             </div>
 
                             {/* ─── Feedback List ─── */}
-                            {displayed.length === 0 ? (
-                                <div className="bg-zayko-800/30 border border-zayko-700 rounded-2xl p-8 text-center">
-                                    <div className="text-4xl mb-3">📭</div>
-                                    <p className="text-zayko-400">No feedbacks match your filters</p>
+                             {displayed.length === 0 ? (
+                                <div className="bg-zayko-800/30 border border-zayko-700 rounded-2xl p-8 text-center flex flex-col items-center">
+                                    <Inbox className="w-12 h-12 text-zayko-700 mb-3" />
+                                    <p className="text-zayko-400">No app feedback matches your filters</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -208,25 +229,25 @@ export default function AdminFeedbackPage() {
                                                             {f.userName?.charAt(0) || "?"}
                                                         </div>
                                                         <span className="text-sm font-bold text-white">{f.userName}</span>
-                                                        <div className="flex text-gold-400 text-xs">
+                                                         <div className="flex text-gold-400">
                                                             {Array.from({ length: 5 }).map((_, i) => (
-                                                                <span key={i} className={i < f.rating ? "opacity-100" : "opacity-20"}>★</span>
+                                                                <Star key={i} className={`w-3 h-3 ${i < f.rating ? "fill-current" : "opacity-20"}`} />
                                                             ))}
                                                         </div>
-                                                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">
-                                                            {CAT_ICONS[f.category] || "💬"} {f.category}
+                                                        <span className="flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20">
+                                                            {CAT_ICONS[f.category] || <MessageSquare className="w-3 h-3" />} {f.category}
                                                         </span>
-                                                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${f.status === "reviewed" ? "bg-emerald-500/20 text-emerald-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                                                            {f.status === "reviewed" ? "✅ Reviewed" : "⏳ Pending"}
+                                                        <span className={`flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full font-bold border ${f.status === "reviewed" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"}`}>
+                                                            {f.status === "reviewed" ? <><CheckCircle2 className="w-3 h-3" /> Reviewed</> : <><Clock className="w-3 h-3" /> Pending</>}
                                                         </span>
                                                     </div>
                                                     <p className="text-sm text-zayko-300 leading-relaxed">{f.message}</p>
                                                     <p className="text-xs text-zayko-500 mt-1.5">{new Date(f.createdAt).toLocaleString()}</p>
                                                 </div>
-                                                {f.status === "new" && (
+                                                 {f.status === "new" && (
                                                     <button onClick={() => markReviewed(f.id)} disabled={markingId === f.id}
-                                                        className="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-bold hover:bg-emerald-500/30 transition-all shrink-0 disabled:opacity-50">
-                                                        {markingId === f.id ? "…" : "✅ Mark Reviewed"}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-sm font-bold hover:bg-emerald-500/20 transition-all shrink-0 disabled:opacity-50">
+                                                        {markingId === f.id ? "…" : <><CheckCircle2 className="w-4 h-4" /> Mark Reviewed</>}
                                                     </button>
                                                 )}
                                             </div>

@@ -13,7 +13,7 @@ import FloatingThemePalette from "@/components/ui/FloatingThemePalette";
 import CartDrawer from "@/components/CartDrawer";
 import "@/styles/themes.css";
 
-const EXCLUDED_PREFIXES = ["/admin", "/stock", "/executive"];
+const EXCLUDED_PREFIXES = ["/stock", "/executive"];
 
 export default function UserThemeWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname();

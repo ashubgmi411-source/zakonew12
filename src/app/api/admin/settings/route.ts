@@ -17,6 +17,9 @@ const DEFAULT_CONFIG = {
     isOpen: true,
     startTime: "09:00",
     endTime: "17:00",
+    nvidiaAsrEnabled: true,
+    nvidiaTtsEnabled: true,
+    failoverStatus: "active"
 };
 
 // GET /api/admin/settings — Fetch current canteen config
@@ -33,7 +36,9 @@ export async function GET(req: NextRequest) {
             await adminDb.doc(CONFIG_PATH).set(DEFAULT_CONFIG);
             return NextResponse.json(DEFAULT_CONFIG);
         }
-        return NextResponse.json(doc.data());
+        const data = doc.data() || {};
+        // Merge with defaults to ensure new fields exist
+        return NextResponse.json({ ...DEFAULT_CONFIG, ...data });
     } catch (error) {
         console.error("Failed to fetch settings:", error);
         return NextResponse.json({ error: "Failed to fetch settings" }, { status: 500 });
@@ -51,9 +56,9 @@ export async function PUT(req: NextRequest) {
         const data = await req.json();
         const update: Record<string, unknown> = {};
 
-        if (typeof data.isOpen === "boolean") {
-            update.isOpen = data.isOpen;
-        }
+        if (typeof data.isOpen === "boolean") update.isOpen = data.isOpen;
+        if (typeof data.nvidiaAsrEnabled === "boolean") update.nvidiaAsrEnabled = data.nvidiaAsrEnabled;
+        if (typeof data.nvidiaTtsEnabled === "boolean") update.nvidiaTtsEnabled = data.nvidiaTtsEnabled;
 
         if (typeof data.startTime === "string" && /^\d{2}:\d{2}$/.test(data.startTime)) {
             update.startTime = data.startTime;

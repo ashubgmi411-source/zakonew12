@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { ArrowLeft, Star, Soup, User, Calendar, MessageSquare, RefreshCw } from "lucide-react";
 import type { Feedback } from "@/types";
 
 export default function AdminFeedbackPage() {
@@ -44,14 +45,21 @@ export default function AdminFeedbackPage() {
                 <div className="bg-zayko-800 border-b border-zayko-700 px-6 py-4">
                     <div className="max-w-7xl mx-auto flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Link href="/admin/dashboard" className="text-zayko-400 hover:text-white transition-colors">
-                                ← Back
+                            <Link href="/admin/dashboard" className="flex items-center gap-1 text-zayko-400 hover:text-white transition-colors">
+                                <ArrowLeft className="w-4 h-4" /> Dashboard
                             </Link>
-                            <h1 className="text-lg font-display font-bold text-white">Customer Feedback ⭐</h1>
+                            <h1 className="flex items-center gap-2 text-lg font-display font-bold text-white">
+                                <Soup className="w-5 h-5 text-emerald-400" /> Food Feedback
+                            </h1>
                         </div>
-                        <div className="bg-gold-500/10 border border-gold-500/20 px-4 py-1.5 rounded-full">
-                            <span className="text-xs text-gold-400 font-bold uppercase tracking-wider">Avg Rating: {avgRating} ★</span>
+                        <div className="flex items-center gap-2 bg-gold-500/10 border border-gold-500/20 px-4 py-1.5 rounded-full">
+                            <Star className="w-3.5 h-3.5 text-gold-400 fill-gold-400" />
+                            <span className="text-xs text-gold-400 font-bold uppercase tracking-wider">Avg Rating: {avgRating}</span>
                         </div>
+                        <button onClick={() => { setLoading(true); fetchFeedbacks(); }}
+                            className="bg-white/5 border border-white/10 p-2 rounded-xl text-zayko-400 hover:text-white transition-all">
+                            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                        </button>
                     </div>
                 </div>
 
@@ -61,10 +69,10 @@ export default function AdminFeedbackPage() {
                             <div className="w-12 h-12 border-4 border-gold-400 border-t-transparent rounded-full animate-spin"></div>
                         </div>
                     ) : feedbacks.length === 0 ? (
-                        <div className="text-center py-20 bg-zayko-800/30 border border-zayko-700 border-dashed rounded-3xl">
-                            <span className="text-5xl mb-4 block">💬</span>
-                            <h3 className="text-white font-bold text-xl">No feedback yet</h3>
-                            <p className="text-zayko-400">Customer reviews will appear here</p>
+                        <div className="text-center py-20 bg-zayko-800/30 border border-zayko-700 border-dashed rounded-3xl flex flex-col items-center">
+                            <MessageSquare className="w-12 h-12 text-zayko-700 mb-4" />
+                            <h3 className="text-white font-bold text-xl">No food feedback yet</h3>
+                            <p className="text-zayko-400">Order-related reviews will appear here</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -80,9 +88,12 @@ export default function AdminFeedbackPage() {
                                                 <p className="text-[10px] text-zayko-500">{new Date(f.createdAt).toLocaleDateString()}</p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-0.5 text-gold-400">
+                                        <div className="flex items-center gap-0.5">
                                             {Array.from({ length: 5 }).map((_, i) => (
-                                                <span key={i} className={i < f.rating ? "opacity-100" : "opacity-20"}>★</span>
+                                                <Star 
+                                                    key={i} 
+                                                    className={`w-3.5 h-3.5 ${i < f.rating ? "text-gold-400 fill-gold-400" : "text-zayko-700 fill-zayko-700/50"}`} 
+                                                />
                                             ))}
                                         </div>
                                     </div>

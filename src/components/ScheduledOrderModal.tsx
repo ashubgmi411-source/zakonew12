@@ -18,6 +18,7 @@ import {
 } from "@/services/scheduledOrderService";
 import type { ScheduledOrder, ScheduledOrderItem } from "@/types";
 import toast from "react-hot-toast";
+import TimePickerAMPM from "@/components/ui/TimePickerAMPM";
 
 interface ScheduledOrderModalProps {
     isOpen: boolean;
@@ -344,17 +345,11 @@ export default function ScheduledOrderModal({
                                                 className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/25 focus:border-gold-400/25 transition-all [color-scheme:dark]"
                                             />
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-bold text-zayko-400 uppercase tracking-wider mb-1.5 block">
-                                                ⏰ Time
-                                            </label>
-                                            <input
-                                                type="time"
-                                                value={time}
-                                                onChange={(e) => setTime(e.target.value)}
-                                                className="w-full px-3 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-2 focus:ring-gold-400/25 focus:border-gold-400/25 transition-all [color-scheme:dark]"
-                                            />
-                                        </div>
+                                        <TimePickerAMPM
+                                            label="⏰ Time"
+                                            value={time}
+                                            onChange={(val) => setTime(val)}
+                                        />
                                     </div>
 
                                     {/* Payment Method */}

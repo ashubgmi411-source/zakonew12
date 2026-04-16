@@ -13,6 +13,7 @@ interface UseVoiceAssistantReturn {
     transcript: string;
     interimTranscript: string;
     lastResponse: string;
+    activeProvider: string;
     startListening: () => void;
     stopListening: () => void;
     speak: (text: string) => Promise<void>;
@@ -46,7 +47,7 @@ function getFemaleVoice(): SpeechSynthesisVoice | null {
     }
 
     // 3. Any voice with "Female" in the name for Indian languages
-    const femaleIN = voices.find(v => 
+    const femaleIN = voices.find(v =>
         (v.lang.toLowerCase().includes("in") || v.lang.toLowerCase().includes("hi")) &&
         v.name.toLowerCase().includes("female")
     );
@@ -71,210 +72,211 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
     const [transcript, setTranscript] = useState("");
     const [interimTranscript, setInterimTranscript] = useState("");
     const [lastResponse, setLastResponse] = useState("");
+    const [activeProvider, setActiveProvider] = useState<string>("browser");
 
     const recognitionRef = useRef<any>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    
+
     // Keep onFinalTranscript fresh without triggering re-initialization
     const onFinalTranscriptRef = useRef(onFinalTranscript);
     useEffect(() => {
         onFinalTranscriptRef.current = onFinalTranscript;
     }, [onFinalTranscript]);
 
-    // ── Initialize recognition ──
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-
-        const SpeechRecognition =
-            (window as any).SpeechRecognition ||
-            (window as any).webkitSpeechRecognition;
-
-        if (!SpeechRecognition) return;
+    // ── 1. Initialize Browser Recognition (as backup) ──
+    const initRecognition = useCallback(() => {
+        if (typeof window === "undefined") return null;
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) return null;
 
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
-        recognition.interimResults = true; // Enable interim results
-        recognition.lang = "en-IN"; // English/Hinglish priority over purely Devanagari Hindi
-        recognition.maxAlternatives = 1;
-
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
+        recognition.interimResults = true;
+        recognition.lang = "en-IN";
+        
+        recognition.onresult = (event: any) => {
             let finalStr = "";
             let interimStr = "";
-
             for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalStr += event.results[i][0].transcript;
-                } else {
-                    interimStr += event.results[i][0].transcript;
-                }
+                if (event.results[i].isFinal) finalStr += event.results[i][0].transcript;
+                else interimStr += event.results[i][0].transcript;
             }
-
-            if (interimStr) {
-                setInterimTranscript(interimStr);
-            }
-
-            if (finalStr) {
+            if (interimStr) setInterimTranscript(interimStr);
+            if (finalStr && activeProvider === "browser") {
                 setTranscript(finalStr);
                 setInterimTranscript("");
-                setIsListening(false);
-                if (onFinalTranscriptRef.current) {
-                    onFinalTranscriptRef.current(finalStr);
-                }
+                if (onFinalTranscriptRef.current) onFinalTranscriptRef.current(finalStr);
             }
-        };
-
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-            // Ignore common abort/network errors from throwing dev overlay
-            if (event.error !== "aborted" && event.error !== "network") {
-                console.warn("Speech recognition error:", event.error);
-            }
-            setIsListening(false);
         };
 
         recognition.onend = () => {
-            setIsListening(false);
+            if (activeProvider === "browser") setIsListening(false);
         };
 
-        recognitionRef.current = recognition;
-    }, []);
+        return recognition;
+    }, [activeProvider]);
 
-    // ── Load voices when available ──
     useEffect(() => {
-        if (typeof window === "undefined") return;
-        // Chrome loads voices async
-        window.speechSynthesis?.addEventListener?.("voiceschanged", () => { });
-    }, []);
+        recognitionRef.current = initRecognition();
+    }, [initRecognition]);
+
+    // ── 2. Handle Audio Recording (for Server ASR) ──
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            audioChunksRef.current = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) audioChunksRef.current.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                await processAudioBlob(audioBlob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+        } catch (err) {
+            console.error("Failed to start recording:", err);
+            setActiveProvider("browser"); // Force fallback if mic access fails for MediaRecorder
+        }
+    };
+
+    const processAudioBlob = async (blob: Blob) => {
+        setIsProcessing(true);
+        try {
+            const formData = new FormData();
+            formData.append("audio", blob);
+
+            const res = await fetch("/api/asr", { method: "POST", body: formData });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.text) {
+                    setTranscript(data.text);
+                    setActiveProvider(data.provider || "server");
+                    if (onFinalTranscriptRef.current) onFinalTranscriptRef.current(data.text);
+                    return;
+                }
+            }
+            throw new Error("Server ASR failed");
+        } catch (err) {
+            console.warn("Server ASR failed, but browser ASR may have results:", err);
+            // If browser recognition is already running and has a transcript, we're good.
+            // Otherwise, we might have lost the input.
+        } finally {
+            setIsProcessing(false);
+            setIsListening(false);
+        }
+    };
 
     // ── Start listening ──
-    const startListening = useCallback(() => {
-        if (!recognitionRef.current) {
-            console.warn("SpeechRecognition not supported");
-            return;
-        }
-
-        // --- MOBILE AUDIO UNLOCK HACK ---
-        if (window.speechSynthesis) {
-            window.speechSynthesis.cancel();
-            // Speak a silent utterance to unlock audio context on iOS/Android immediately upon user click
-            const unlockUtterance = new SpeechSynthesisUtterance("");
-            unlockUtterance.volume = 0;
-            unlockUtterance.rate = 10;
-            window.speechSynthesis.speak(unlockUtterance);
-        }
-        
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current = null;
-        }
-
+    const startListening = useCallback(async () => {
+        setIsListening(true);
         setTranscript("");
         setInterimTranscript("");
-        setIsListening(true);
-        try {
-            recognitionRef.current.start();
-        } catch (e) {
-            // Already started
-            console.warn("Recognition already active:", e);
+        
+        // Unlock audio
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance("");
+            u.volume = 0;
+            window.speechSynthesis.speak(u);
         }
-    }, []);
 
-    // ── Stop listening ──
+        // Try Server ASR (NVIDIA) first if enabled, while keeping Browser ASR as live-preview
+        setActiveProvider("nvidia-parakeet");
+        startRecording();
+        
+        if (recognitionRef.current) {
+            try {
+                recognitionRef.current.start();
+            } catch (e) {
+                console.warn("Recognition already active");
+            }
+        }
+    }, [initRecognition]);
+
     const stopListening = useCallback(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            mediaRecorderRef.current.stop();
+        }
         if (recognitionRef.current) {
             recognitionRef.current.stop();
         }
         setIsListening(false);
     }, []);
 
-    // ── Speak using Polly (API) or Browser TTS fallback ──
+    // ── Speak with Failover ──
     const speak = useCallback(async (text: string) => {
         if (!text) return;
-
         setIsSpeaking(true);
         setLastResponse(text);
         window.speechSynthesis?.cancel();
-        
+
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current = null;
         }
 
-        const provider = process.env.NEXT_PUBLIC_TTS_PROVIDER || "browser";
+        try {
+            const res = await fetch("/api/tts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text })
+            });
 
-        if (provider !== "browser") {
-            try {
-                // Try Polly/API first
-                const res = await fetch("/api/tts", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text })
-                });
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audioRef.current = audio;
+                const provider = res.headers.get("X-Voice-Provider") || "api";
+                console.log(`[TTS] Speaking via ${provider}`);
 
-                if (res.ok) {
-                    const blob = await res.blob();
-                    const url = URL.createObjectURL(blob);
-                    const audio = new Audio(url);
-                    audioRef.current = audio;
-                    
-                    audio.onended = () => {
-                        setIsSpeaking(false);
-                        URL.revokeObjectURL(url);
-                        audioRef.current = null;
-                    };
-                    
-                    audio.onerror = () => {
-                        console.error("Audio playback error");
-                        setIsSpeaking(false);
-                        URL.revokeObjectURL(url);
-                        audioRef.current = null;
-                        fallbackSpeak(text); // Fallback to browser if play fails
-                    };
+                audio.onended = () => {
+                    setIsSpeaking(false);
+                    URL.revokeObjectURL(url);
+                    audioRef.current = null;
+                };
 
-                    await audio.play();
-                    return;
-                } else {
-                    console.warn("TTS API failed, falling back to browser");
-                }
-            } catch (err) {
-                console.error("TTS API error:", err);
+                audio.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    fallbackSpeak(text);
+                };
+
+                await audio.play();
+                return;
             }
+        } catch (err) {
+            console.error("TTS API error:", err);
         }
 
-        // Fallback to Browser SpeechSynthesis
         fallbackSpeak(text);
     }, []);
 
     const fallbackSpeak = (text: string) => {
-        // Native Browser SpeechSynthesis (Authentic Indian Accent)
         if (window.speechSynthesis) {
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.1;
-            utterance.volume = 1;
-
-            const voice = getFemaleVoice();
-            if (voice) {
-                utterance.voice = voice;
-                utterance.lang = voice.lang || "hi-IN";
-            } else {
-                utterance.lang = "hi-IN";
-            }
-
+            utterance.lang = "hi-IN";
+            const femaleVoice = getFemaleVoice();
+            if (femaleVoice) utterance.voice = femaleVoice;
             utterance.onend = () => setIsSpeaking(false);
             utterance.onerror = () => setIsSpeaking(false);
-
             window.speechSynthesis.speak(utterance);
         } else {
             setIsSpeaking(false);
         }
     };
 
-    // ── Cancel speech ──
     const cancelSpeech = useCallback(() => {
         window.speechSynthesis?.cancel();
         if (audioRef.current) {
             audioRef.current.pause();
-            audioRef.current = null;
         }
         setIsSpeaking(false);
     }, []);
@@ -286,6 +288,7 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
         transcript,
         interimTranscript,
         lastResponse,
+        activeProvider,
         startListening,
         stopListening,
         speak,

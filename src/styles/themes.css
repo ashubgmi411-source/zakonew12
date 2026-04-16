@@ -58,28 +58,69 @@ html, body, [data-theme] {
 }
 
 /* Light theme text color overrides for dark-hardcoded elements */
-[data-theme="light"] .text-white { color: var(--text-primary) !important; }
-[data-theme="light"] .text-zayko-100 { color: var(--text-primary) !important; }
-[data-theme="light"] .text-zayko-200 { color: var(--text-primary) !important; }
-[data-theme="light"] .text-zayko-300 { color: var(--text-secondary) !important; }
-[data-theme="light"] .text-zayko-400 { color: var(--text-secondary) !important; }
-[data-theme="light"] .text-zayko-500 { color: #888 !important; }
-[data-theme="light"] .text-zayko-600 { color: #999 !important; }
-
-/* In Light Theme, we map the Tailwind CSS variables for Zayko dark colors directly to light colors */
 [data-theme="light"] {
   --color-zayko-950: #FFFFFF;
   --color-zayko-900: #F8F7F4;
   --color-zayko-800: #F0EEE9;
-  --color-zayko-700: #E8E4DC;
-  --color-zayko-600: #d4d0c8;
+  --color-zayko-700: #E2E8F0;
+  --color-zayko-600: #CBD5E0;
+  --color-zayko-500: #A0AEC0;
 }
 
-[data-theme="light"] .border-white\/\[0\.06\] { border-color: var(--border) !important; }
-[data-theme="light"] .border-white\/\[0\.03\] { border-color: rgba(0,0,0,0.06) !important; }
-[data-theme="light"] .border-white\/5 { border-color: rgba(0,0,0,0.05) !important; }
-[data-theme="light"] .border-white\/10 { border-color: rgba(0,0,0,0.10) !important; }
-[data-theme="light"] .border-white\/20 { border-color: rgba(0,0,0,0.20) !important; }
+[data-theme="light"] body { background-color: var(--bg-primary) !important; color: var(--text-primary) !important; }
+
+/* Text Visibility */
+[data-theme="light"] .text-white:not(button *):not(.badge *):not(.btn *):not(.status-badge *) { color: var(--text-primary) !important; }
+[data-theme="light"] .text-zayko-100:not(button *):not(.badge *):not(.btn *) { color: var(--text-primary) !important; }
+[data-theme="light"] .text-zayko-200 { color: #334155 !important; } 
+[data-theme="light"] .text-zayko-300 { color: #475569 !important; } 
+[data-theme="light"] .text-zayko-400 { color: #64748b !important; } 
+[data-theme="light"] .text-zayko-500 { color: #94a3b8 !important; } 
+
+/* Backgrounds */
+[data-theme="light"] .bg-zayko-950 { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-zayko-900 { background-color: #F8F7F4 !important; }
+[data-theme="light"] .bg-zayko-800 { background-color: #F0EEE9 !important; }
+[data-theme="light"] .bg-zayko-700 { background-color: #E2E8F0 !important; }
+[data-theme="light"] .bg-zayko-800\/50 { background-color: rgba(255, 255, 255, 0.7) !important; }
+[data-theme="light"] .bg-zayko-800\/80 { background-color: rgba(255, 255, 255, 0.9) !important; }
+[data-theme="light"] .bg-zayko-900\/50 { background-color: rgba(240, 238, 233, 0.5) !important; }
+[data-theme="light"] .bg-white\/5 { background-color: rgba(0, 0, 0, 0.04) !important; }
+[data-theme="light"] .bg-white\/10 { background-color: rgba(0, 0, 0, 0.06) !important; }
+
+/* Borders */
+[data-theme="light"] .border-zayko-700 { border-color: #E2E8F0 !important; }
+[data-theme="light"] .border-zayko-600 { border-color: #CBD5E0 !important; }
+[data-theme="light"] .border-white\/5 { border-color: rgba(0, 0, 0, 0.05) !important; }
+[data-theme="light"] .border-white\/10 { border-color: rgba(0, 0, 0, 0.1) !important; }
+[data-theme="light"] .border-white\/20 { border-color: rgba(0, 0, 0, 0.15) !important; }
+
+/* Brand Accents — Light Mode Overrides */
+[data-theme="light"] {
+  --brand-teal: #0d9488;    /* Darker teal for text in light mode */
+  --brand-teal-bg: #f0fdfa; /* Light teal bg */
+  --brand-teal-border: #99f6e4;
+  
+  --brand-purple: #7e22ce;  /* Darker purple for text in light mode */
+  --brand-purple-bg: #faf5ff; /* Light purple bg */
+  --brand-purple-border: #e9d5ff;
+
+  --brand-gold: #b45309;    /* Darker gold for labels */
+}
+
+/* Default Brand Accents (Dark Mode) */
+:root, [data-theme="midnight"] {
+  --brand-teal: #5eead4;    /* teal-300 */
+  --brand-teal-bg: rgba(20, 184, 166, 0.15);
+  --brand-teal-border: rgba(20, 184, 166, 0.25);
+  
+  --brand-purple: #d8b4fe;  /* purple-300 */
+  --brand-purple-bg: rgba(168, 85, 247, 0.15);
+  --brand-purple-border: rgba(168, 85, 247, 0.25);
+
+  --brand-gold: #fbbf24;    /* gold-400 */
+}
+
 
 /* 🔥 THEME 3 — "Ember" */
 [data-theme="ember"] {

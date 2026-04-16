@@ -12,14 +12,18 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getConfirmedDemandForStockManager } from "@/services/dailyNeedsService";
+import { verifyAdmin } from "@/lib/admin-auth";
 
 export async function GET(req: NextRequest) {
-    // Auth: stock manager token
+    // Auth: stock manager token OR admin token
     const authHeader = req.headers.get("authorization");
-    const stockToken = authHeader?.replace("Bearer ", "");
-    const expectedToken = process.env.STOCK_MANAGER_TOKEN;
+    const token = authHeader?.replace("Bearer ", "");
+    const expectedStockToken = process.env.STOCK_MANAGER_TOKEN;
 
-    if (!expectedToken || stockToken !== expectedToken) {
+    const isAdmin = verifyAdmin(req);
+    const isStockManager = expectedStockToken && token === expectedStockToken;
+
+    if (!isAdmin && !isStockManager) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

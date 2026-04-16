@@ -6,8 +6,13 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { useCountdown } from "@/hooks/useCountdown";
-import InvoiceModal from "@/components/InvoiceModal";
+
 import ThermalReceipt from "@/components/ThermalReceipt";
+import { 
+    ClipboardList, Search, User, Mail, Clock, 
+    FileText, Inbox, CheckCircle2, 
+    AlarmClock, ArrowLeft, X 
+} from "lucide-react";
 
 interface OrderItem {
     name: string;
@@ -48,10 +53,11 @@ const statusColors: Record<string, string> = {
 function AdminCountdown({ readyAt }: { readyAt?: string }) {
     const { formatted, isExpired, totalSeconds } = useCountdown(readyAt);
     if (!readyAt) return null;
-    if (isExpired) return <span className="text-emerald-400 text-xs font-semibold">⏰ Time up</span>;
+    if (!readyAt) return null;
+    if (isExpired) return <span className="flex items-center gap-1 text-emerald-400 text-xs font-semibold"><AlarmClock className="w-3.5 h-3.5" /> Time up</span>;
     return (
-        <span className={`text-xs font-mono font-bold ${totalSeconds <= 60 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>
-            🕒 {formatted}
+        <span className={`flex items-center gap-1 text-xs font-mono font-bold ${totalSeconds <= 60 ? "text-red-400 animate-pulse" : "text-orange-400"}`}>
+            <Clock className="w-3.5 h-3.5" /> {formatted}
         </span>
     );
 }
@@ -61,7 +67,7 @@ export default function AdminOrdersPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState("all");
     const [customPrepTimes, setCustomPrepTimes] = useState<Record<string, string>>({});
-    const [invoiceOrder, setInvoiceOrder] = useState<AdminOrder | null>(null);
+
     const [receiptOrder, setReceiptOrder] = useState<AdminOrder | null>(null);
 
     // Search state
@@ -152,35 +158,14 @@ export default function AdminOrdersPage() {
     }, [debouncedSearch, filteredOrders]);
 
     return (
-        <AdminGuard>
-            <div className="min-h-screen bg-zayko-900">
-                {/* Header */}
-                <div className="bg-zayko-800 border-b border-zayko-700 px-6 py-4">
-                    <div className="max-w-7xl mx-auto flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <Link href="/admin/dashboard" className="text-zayko-400 hover:text-white transition-colors">
-                                ← Dashboard
-                            </Link>
-                            <h1 className="text-lg font-display font-bold text-white">📋 Orders</h1>
-                            {pendingCount > 0 && (
-                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-                                    {pendingCount} new
-                                </span>
-                            )}
-                            {preparingCount > 0 && (
-                                <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                                    {preparingCount} preparing
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="max-w-7xl mx-auto p-6">
+        <>
+            <div className="max-w-7xl mx-auto p-6">
                     {/* Search Bar */}
                     <div className="mb-6 bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4 animate-fade-in">
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl">🔍</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2">
+                                <Search className="w-5 h-5 text-zayko-400 font-bold" />
+                            </span>
                             <input
                                 type="text"
                                 placeholder="Search by Order ID or Customer Name..."
@@ -193,7 +178,7 @@ export default function AdminOrdersPage() {
                                     onClick={() => setSearchTerm("")}
                                     className="absolute right-4 top-1/2 -translate-y-1/2 text-zayko-400 hover:text-white transition-colors"
                                 >
-                                    ✕
+                                    <X className="w-5 h-5" />
                                 </button>
                             )}
                         </div>
@@ -221,7 +206,9 @@ export default function AdminOrdersPage() {
                         </div>
                     ) : filteredOrders.length === 0 ? (
                         <div className="text-center py-20 text-zayko-500">
-                            <div className="text-5xl mb-4">📭</div>
+                            <div className="flex justify-center mb-4">
+                                <Inbox className="w-16 h-16 text-zayko-700" />
+                            </div>
                             {debouncedSearch ? (
                                 <p>Order <strong className="text-white">"{debouncedSearch}"</strong> not found.</p>
                             ) : (
@@ -253,10 +240,10 @@ export default function AdminOrdersPage() {
                                                         <AdminCountdown readyAt={order.readyAt || order.estimatedReadyAt} />
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-3 mt-1 text-sm text-zayko-400">
-                                                    <span>👤 {order.userName}</span>
-                                                    <span>📧 {order.userEmail}</span>
-                                                    <span>🕐 {new Date(order.createdAt).toLocaleString()}</span>
+                                                <div className="flex items-center gap-3 mt-1.5 text-sm text-zayko-400">
+                                                    <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> {order.userName}</span>
+                                                    <span className="hidden sm:flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> {order.userEmail}</span>
+                                                    <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {new Date(order.createdAt).toLocaleString()}</span>
                                                 </div>
                                             </div>
                                             <span className="text-2xl font-display font-bold text-gold-400">₹{order.total}</span>
@@ -340,26 +327,20 @@ export default function AdminOrdersPage() {
                                             {(order.status === "preparing" || order.status === "confirmed") && (
                                                 <button
                                                     onClick={() => updateOrder(order.id, { status: "ready" })}
-                                                    className="ml-auto px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-lg hover:shadow-emerald-500/25"
+                                                    className="ml-auto px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-lg hover:shadow-emerald-500/25 flex items-center gap-2"
                                                 >
-                                                    ✅ Mark Ready
+                                                    <CheckCircle2 className="w-4 h-4" /> Mark Ready
                                                 </button>
                                             )}
 
-                                            {/* Print Invoice */}
-                                            <button
-                                                onClick={() => setInvoiceOrder(order)}
-                                                className="px-4 py-2 rounded-xl text-sm font-bold bg-zayko-500 text-white hover:bg-zayko-600 transition-all"
-                                            >
-                                                🖨️ Invoice
-                                            </button>
+
 
                                             {/* Thermal Receipt */}
                                             <button
                                                 onClick={() => setReceiptOrder(order)}
-                                                className="px-4 py-2 rounded-xl text-sm font-bold bg-gold-600 text-white hover:bg-gold-500 transition-all"
+                                                className="px-4 py-2 rounded-xl text-sm font-bold bg-gold-600 text-white hover:bg-gold-500 transition-all flex items-center gap-2"
                                             >
-                                                🧾 Receipt
+                                                <FileText className="w-4 h-4" /> Receipt
                                             </button>
                                         </div>
                                     </div>
@@ -368,17 +349,14 @@ export default function AdminOrdersPage() {
                         </div>
                     )}
                 </div>
-            </div>
 
-            {/* Invoice Modal */}
-            {invoiceOrder && (
-                <InvoiceModal order={invoiceOrder} onClose={() => setInvoiceOrder(null)} />
-            )}
+
+
 
             {/* Thermal Receipt Modal */}
             {receiptOrder && (
                 <ThermalReceipt order={receiptOrder} onClose={() => setReceiptOrder(null)} />
             )}
-        </AdminGuard>
+        </>
     );
 }

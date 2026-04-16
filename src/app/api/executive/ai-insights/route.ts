@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { verifySuperAdmin } from "@/lib/super-admin-auth";
+import { verifyAdmin } from "@/lib/admin-auth";
 import {
     generateAIInsights,
     gatherAnalyticsData,
@@ -21,8 +22,12 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-    const admin = verifySuperAdmin(req);
-    if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const isSuperAdmin = verifySuperAdmin(req);
+    const isAdmin = verifyAdmin(req);
+    
+    if (!isSuperAdmin && !isAdmin) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     try {
         // Try LLM-powered insights first

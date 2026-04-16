@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { verifyStockManager } from "@/lib/stock-manager-auth";
+import { verifyAdmin } from "@/lib/admin-auth";
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -30,7 +31,9 @@ function getTomorrowDayName(): string {
 
 export async function GET(req: NextRequest) {
     const manager = verifyStockManager(req);
-    if (!manager) {
+    const isAdmin = verifyAdmin(req);
+
+    if (!manager && !isAdmin) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

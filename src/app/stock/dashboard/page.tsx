@@ -3,6 +3,11 @@ import React, { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import { db } from "@/lib/firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { 
+    BarChart3, Users, Flame, Calendar, AlertTriangle, 
+    Radio, ClipboardList, TrendingUp, CheckCircle2, 
+    RefreshCw, ShoppingCart, FileText, Inbox 
+} from "lucide-react";
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DAY_SHORT: Record<string, string> = {
@@ -236,11 +241,12 @@ export default function StockManagerDashboard() {
 
     return (
         <div className="min-h-screen bg-zayko-900 pb-12" ref={reportRef}>
-            {/* ─── Header ─── */}
             <div className="bg-zayko-800 border-b border-zayko-700 px-6 py-4 no-print">
                 <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">📊</div>
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">
+                            <BarChart3 className="w-6 h-6 text-emerald-400" />
+                        </div>
                         <div>
                             <h1 className="text-lg font-display font-bold text-white">Dashboard Overview</h1>
                             <p className="text-xs text-emerald-400">Demand & Inventory Planning</p>
@@ -249,15 +255,15 @@ export default function StockManagerDashboard() {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handlePrintReport}
-                            className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-xl text-sm font-semibold hover:bg-blue-500/30 transition-all"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-400 rounded-xl text-sm font-semibold hover:bg-blue-500/30 transition-all"
                         >
-                            📄 Download Report
+                            <FileText className="w-4 h-4" /> Download Report
                         </button>
                         <button
                             onClick={() => { setLoading(true); fetchData(); fetchReservationAnalytics(); fetchConfirmedDemand(); }}
-                            className="px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold hover:bg-emerald-500/30 transition-all"
+                            className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold hover:bg-emerald-500/30 transition-all"
                         >
-                            🔄 Refresh
+                            <RefreshCw className="w-4 h-4" /> Refresh
                         </button>
                     </div>
                 </div>
@@ -275,14 +281,14 @@ export default function StockManagerDashboard() {
                         {/* ─── Summary Cards ─── */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in">
                             {[
-                                { label: "Active Users", value: data.summary.totalActiveUsers, icon: "👥", color: "text-blue-400" },
-                                { label: "Top Item", value: data.summary.highestDemandItem, sub: `${data.summary.highestDemandQty} units/week`, icon: "🔥", color: "text-gold-400" },
-                                { label: "Peak Day", value: data.summary.mostDemandingDay, sub: `${data.summary.mostDemandingDayQty} units`, icon: "📅", color: "text-purple-400" },
-                                { label: "Items at Risk", value: data.summary.itemsAtRisk, icon: "⚠️", color: data.summary.itemsAtRisk > 0 ? "text-red-400" : "text-emerald-400" },
+                                { label: "Active Users", value: data.summary.totalActiveUsers, icon: <Users className="w-5 h-5" />, color: "text-blue-400" },
+                                { label: "Top Item", value: data.summary.highestDemandItem, sub: `${data.summary.highestDemandQty} units/week`, icon: <Flame className="w-5 h-5" />, color: "text-gold-400" },
+                                { label: "Peak Day", value: data.summary.mostDemandingDay, sub: `${data.summary.mostDemandingDayQty} units`, icon: <Calendar className="w-5 h-5" />, color: "text-purple-400" },
+                                { label: "Items at Risk", value: data.summary.itemsAtRisk, icon: <AlertTriangle className="w-5 h-5" />, color: data.summary.itemsAtRisk > 0 ? "text-red-400" : "text-emerald-400" },
                             ].map((card) => (
                                 <div key={card.label} className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-lg">{card.icon}</span>
+                                        <span className={card.color}>{card.icon}</span>
                                         <span className="text-xs text-zayko-400">{card.label}</span>
                                     </div>
                                     <p className={`text-xl font-display font-bold ${card.color} truncate`}>{card.value}</p>
@@ -295,7 +301,9 @@ export default function StockManagerDashboard() {
                         <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl p-6 mb-8 animate-slide-up">
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">📡</div>
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">
+                                        <Radio className="w-6 h-6 text-emerald-400" />
+                                    </div>
                                     <div>
                                         <h2 className="text-base font-display font-bold text-white">Live Student Demand</h2>
                                         <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold">Real-time • Auto-updating</p>
@@ -352,7 +360,9 @@ export default function StockManagerDashboard() {
                         {resAnalytics && (
                             <div className="bg-gradient-to-br from-purple-500/10 to-indigo-500/5 border border-purple-500/20 rounded-2xl p-6 mb-8 animate-slide-up">
                                 <div className="flex items-center gap-3 mb-5">
-                                    <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-xl">📋</div>
+                                    <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-xl">
+                                        <ClipboardList className="w-6 h-6 text-purple-400" />
+                                    </div>
                                     <div>
                                         <h2 className="text-base font-display font-bold text-white">Reservation Analytics</h2>
                                         <p className="text-[10px] text-purple-400 uppercase tracking-wider font-bold">Today&apos;s reservation tracking</p>
@@ -411,7 +421,9 @@ export default function StockManagerDashboard() {
                                 {/* Demand Forecast */}
                                 {Object.keys(resAnalytics.demandForecast).length > 0 && (
                                     <div>
-                                        <h3 className="text-xs text-zayko-400 font-semibold uppercase tracking-wider mb-2">📈 Tomorrow&apos;s Demand Forecast</h3>
+                                        <h3 className="text-xs text-zayko-400 font-semibold uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            <TrendingUp className="w-4 h-4" /> Tomorrow&apos;s Demand Forecast
+                                        </h3>
                                         <div className="space-y-1.5">
                                             {Object.entries(resAnalytics.demandForecast)
                                                 .sort(([, a], [, b]) => b - a)
@@ -431,7 +443,9 @@ export default function StockManagerDashboard() {
                         <div className="bg-gradient-to-br from-emerald-500/10 to-green-500/5 border border-emerald-500/20 rounded-2xl p-6 mb-8 animate-slide-up">
                             <div className="flex items-center justify-between mb-5">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">✅</div>
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">
+                                        <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                                    </div>
                                     <div>
                                         <h2 className="text-base font-display font-bold text-white">Confirmed Demand</h2>
                                         <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-bold">Only confirmed orders • Buy this</p>
@@ -440,9 +454,9 @@ export default function StockManagerDashboard() {
                                 <button
                                     onClick={fetchConfirmedDemand}
                                     disabled={confirmedLoading}
-                                    className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all disabled:opacity-50"
                                 >
-                                    {confirmedLoading ? "Loading…" : "🔄 Refresh"}
+                                    {confirmedLoading ? "Loading…" : <><RefreshCw className="w-3.5 h-3.5" /> Refresh</>}
                                 </button>
                             </div>
 
@@ -507,7 +521,7 @@ export default function StockManagerDashboard() {
                             )}
 
                             <p className="text-[10px] text-zayko-600 mt-3 text-center">
-                                ⚠️ Only confirmed demand is shown. Reserved/expired items are excluded to prevent over-ordering.
+                                <AlertTriangle className="w-3 h-3 inline mr-1" /> Only confirmed demand is shown. Reserved/expired items are excluded to prevent over-ordering.
                             </p>
                         </div>
 
@@ -516,7 +530,9 @@ export default function StockManagerDashboard() {
                             {/* Today */}
                             <div className="bg-zayko-800/50 border border-emerald-500/20 rounded-2xl p-5">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <span className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-sm">📋</span>
+                                    <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-sm">
+                                        <ClipboardList className="w-4 h-4 text-emerald-400" />
+                                    </div>
                                     <div>
                                         <h3 className="text-sm font-display font-bold text-white">Today&apos;s Demand</h3>
                                         <p className="text-xs text-emerald-400">{data.summary.todayDay}</p>
@@ -547,7 +563,9 @@ export default function StockManagerDashboard() {
                             {/* Tomorrow */}
                             <div className="bg-zayko-800/50 border border-blue-500/20 rounded-2xl p-5">
                                 <div className="flex items-center gap-2 mb-4">
-                                    <span className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm">📆</span>
+                                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm">
+                                        <Calendar className="w-4 h-4 text-blue-400" />
+                                    </div>
                                     <div>
                                         <h3 className="text-sm font-display font-bold text-white">Tomorrow&apos;s Demand</h3>
                                         <p className="text-xs text-blue-400">{data.summary.tomorrowDay}</p>
@@ -581,7 +599,9 @@ export default function StockManagerDashboard() {
                         <div className="animate-slide-up">
                             {/* Day Selector */}
                             <div className="flex items-center gap-3 mb-5">
-                                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm">🛒</div>
+                                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm">
+                                    <ShoppingCart className="w-4 h-4 text-blue-400" />
+                                </div>
                                 <h3 className="text-base font-display font-bold text-white">Day-wise Purchase Requirement</h3>
                             </div>
 
@@ -624,7 +644,9 @@ export default function StockManagerDashboard() {
                             {/* Purchase Items Table */}
                             {dayDemandItems.length === 0 ? (
                                 <div className="bg-zayko-800/30 border border-zayko-700 rounded-2xl p-12 text-center">
-                                    <div className="text-4xl mb-3">📭</div>
+                                    <div className="flex justify-center mb-3">
+                                        <Inbox className="w-12 h-12 text-zayko-700" />
+                                    </div>
                                     <p className="text-zayko-400 font-medium">No items required for {selectedPurchaseDay}</p>
                                     <p className="text-xs text-zayko-600 mt-1">Items will appear here when users add demand for this day</p>
                                 </div>

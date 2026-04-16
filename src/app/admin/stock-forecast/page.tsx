@@ -6,6 +6,10 @@ import toast from "react-hot-toast";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
+import { 
+    ArrowLeft, BarChart3, RefreshCw, Users, Flame, Calendar, 
+    AlertTriangle, TrendingUp, ClipboardList, Package, CheckCircle2 
+} from "lucide-react";
 
 const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DAY_SHORT: Record<string, string> = {
@@ -99,8 +103,12 @@ export default function StockForecastPage() {
                 <div className="bg-zayko-800 border-b border-zayko-700 px-6 py-4">
                     <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <Link href="/admin/dashboard" className="text-zayko-400 hover:text-white transition-colors text-sm">← Dashboard</Link>
-                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-xl">📊</div>
+                            <Link href="/admin/dashboard" className="flex items-center gap-1 text-zayko-400 hover:text-white transition-colors text-sm">
+                                <ArrowLeft className="w-4 h-4" /> Dashboard
+                            </Link>
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-xl text-purple-400">
+                                <BarChart3 className="w-6 h-6" />
+                            </div>
                             <div>
                                 <h1 className="text-lg font-display font-bold text-white">Stock Forecast</h1>
                                 <p className="text-xs text-zayko-400">Demand analysis & stock planning</p>
@@ -108,9 +116,9 @@ export default function StockForecastPage() {
                         </div>
                         <button
                             onClick={() => { setLoading(true); fetchData(); }}
-                            className="px-4 py-2 bg-gold-500/20 text-gold-400 rounded-xl text-sm font-semibold hover:bg-gold-500/30 transition-all"
+                            className="flex items-center gap-2 px-4 py-2 bg-gold-500/20 text-gold-400 rounded-xl text-sm font-semibold hover:bg-gold-500/30 transition-all"
                         >
-                            🔄 Refresh
+                            <RefreshCw className="w-4 h-4" /> Refresh
                         </button>
                     </div>
                 </div>
@@ -127,14 +135,14 @@ export default function StockForecastPage() {
                             {/* ─── Summary Cards ─── */}
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in">
                                 {[
-                                    { label: "Active Demand Users", value: data.summary.totalActiveUsers, icon: "👥", color: "text-blue-400" },
-                                    { label: "Highest Demand Item", value: data.summary.highestDemandItem, sub: `${data.summary.highestDemandQty} units/week`, icon: "🔥", color: "text-gold-400" },
-                                    { label: "Most Demanding Day", value: data.summary.mostDemandingDay, sub: `${data.summary.mostDemandingDayQty} units`, icon: "📅", color: "text-purple-400" },
-                                    { label: "Items at Risk", value: data.summary.itemsAtRisk, icon: "⚠️", color: data.summary.itemsAtRisk > 0 ? "text-red-400" : "text-emerald-400" },
+                                    { label: "Active Demand Users", value: data.summary.totalActiveUsers, icon: <Users className="w-5 h-5 text-blue-400" />, color: "text-blue-400" },
+                                    { label: "Highest Demand Item", value: data.summary.highestDemandItem, sub: `${data.summary.highestDemandQty} units/week`, icon: <Flame className="w-5 h-5 text-gold-400" />, color: "text-gold-400" },
+                                    { label: "Most Demanding Day", value: data.summary.mostDemandingDay, sub: `${data.summary.mostDemandingDayQty} units`, icon: <Calendar className="w-5 h-5 text-purple-400" />, color: "text-purple-400" },
+                                    { label: "Items at Risk", value: data.summary.itemsAtRisk, icon: <AlertTriangle className="w-5 h-5 text-red-400" />, color: data.summary.itemsAtRisk > 0 ? "text-red-400" : "text-emerald-400" },
                                 ].map((card) => (
                                     <div key={card.label} className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-lg">{card.icon}</span>
+                                            {card.icon}
                                             <span className="text-xs text-zayko-400">{card.label}</span>
                                         </div>
                                         <p className={`text-xl font-display font-bold ${card.color} truncate`}>{card.value}</p>
@@ -145,7 +153,9 @@ export default function StockForecastPage() {
 
                             {/* ─── Bar Chart: Day vs Demand ─── */}
                             <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6 mb-8 animate-slide-up">
-                                <h3 className="text-lg font-display font-bold text-white mb-4">📈 Day-wise Total Demand</h3>
+                                <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-gold-400" /> Day-wise Total Demand
+                                </h3>
                                 {data.dayChartData.some((d) => d.total > 0) ? (
                                     <ResponsiveContainer width="100%" height={300}>
                                         <BarChart data={data.dayChartData}>
@@ -199,16 +209,16 @@ export default function StockForecastPage() {
 
                                     <button
                                         onClick={() => setHighDemandOnly(!highDemandOnly)}
-                                        className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${highDemandOnly ? "bg-gold-500 text-zayko-900" : "bg-white/5 text-zayko-400 border border-white/10"}`}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${highDemandOnly ? "bg-gold-500 text-zayko-900" : "bg-white/5 text-zayko-400 border border-white/10"}`}
                                     >
-                                        🔥 High Demand
+                                        <Flame className="w-4 h-4" /> High Demand
                                     </button>
 
                                     <button
                                         onClick={() => setShortageOnly(!shortageOnly)}
-                                        className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${shortageOnly ? "bg-red-500 text-white" : "bg-white/5 text-zayko-400 border border-white/10"}`}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${shortageOnly ? "bg-red-500 text-white" : "bg-white/5 text-zayko-400 border border-white/10"}`}
                                     >
-                                        ⚠️ Shortage Risk
+                                        <AlertTriangle className="w-4 h-4" /> Shortage Risk
                                     </button>
                                 </div>
                             </div>
@@ -216,7 +226,9 @@ export default function StockForecastPage() {
                             {/* ─── Day-wise Demand Breakdown ─── */}
                             <div className="space-y-4 mb-8">
                                 <h3 className="text-base font-display font-bold text-white flex items-center gap-2">
-                                    <span className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-sm">📋</span>
+                                    <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400">
+                                        <ClipboardList className="w-4 h-4" />
+                                    </div>
                                     Day-wise Demand
                                 </h3>
                                 {displayDays.map((day) => {
@@ -258,7 +270,9 @@ export default function StockForecastPage() {
                             {/* ─── Stock Recommendation Table ─── */}
                             <div className="animate-slide-up">
                                 <h3 className="text-base font-display font-bold text-white mb-4 flex items-center gap-2">
-                                    <span className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-sm">📦</span>
+                                    <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400">
+                                        <Package className="w-4 h-4" />
+                                    </div>
                                     Stock Recommendations
                                 </h3>
 
@@ -289,9 +303,13 @@ export default function StockForecastPage() {
                                                         <td className="px-4 py-3 text-center text-emerald-400 font-semibold">{s.suggestedMinStock}</td>
                                                         <td className="px-4 py-3 text-center">
                                                             {s.shortageRisk ? (
-                                                                <span className="px-2 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold">⚠ Shortage</span>
+                                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-bold">
+                                                                    <AlertTriangle className="w-3 h-3" /> Shortage
+                                                                </span>
                                                             ) : (
-                                                                <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold">✓ OK</span>
+                                                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold">
+                                                                    <CheckCircle2 className="w-3 h-3" /> OK
+                                                                </span>
                                                             )}
                                                         </td>
                                                     </tr>

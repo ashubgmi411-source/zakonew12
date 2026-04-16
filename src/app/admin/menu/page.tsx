@@ -14,6 +14,11 @@ import MenuFilters, {
 } from "@/components/admin/MenuFilters";
 
 import { MenuItem, MenuItemCustomization, MenuItemOption, CategoryDoc } from "@/types";
+import { 
+    ArrowLeft, Soup, FolderTree, Bot, Plus, 
+    Edit2, Trash2, Check, X, Pencil, Search, 
+    Settings, Sparkles, Upload 
+} from "lucide-react";
 
 interface ParsedMenuItem {
     name: string;
@@ -195,7 +200,7 @@ export default function AdminMenuPage() {
                             : 0,
                     }),
                 });
-                toast.success("Item updated! ✅");
+                toast.success("Item updated!");
             } else {
                 await fetch("/api/admin/menu", {
                     method: "POST",
@@ -213,7 +218,7 @@ export default function AdminMenuPage() {
                             : 0,
                     }),
                 });
-                toast.success("Item added! 🎉");
+                toast.success("Item added!");
             }
             resetForm();
         } catch {
@@ -374,28 +379,38 @@ export default function AdminMenuPage() {
                         <div className="flex items-center gap-3">
                             <Link
                                 href="/admin/dashboard"
-                                className="text-zayko-400 hover:text-white transition-colors"
+                                className="flex items-center gap-1 text-zayko-400 hover:text-white transition-colors"
                             >
-                                ← Dashboard
+                                <ArrowLeft className="w-4 h-4" /> Dashboard
                             </Link>
-                            <h1 className="text-lg font-display font-bold text-white">
-                                🍽️ Menu Management
+                            <h1 className="flex items-center gap-2 text-lg font-display font-bold text-white">
+                                <Soup className="w-5 h-5 text-emerald-400" /> Menu Management
                             </h1>
                         </div>
                         <div className="flex items-center gap-2">
                             {/* Category Manager Button */}
                             <button
                                 onClick={() => setShowCatManager(true)}
-                                className="px-4 py-2 bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-xl text-sm font-medium hover:bg-teal-500/30 transition-all flex items-center gap-2"
+                                className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 border"
+                                style={{ 
+                                    backgroundColor: 'var(--brand-teal-bg)', 
+                                    color: 'var(--brand-teal)', 
+                                    borderColor: 'var(--brand-teal-border)' 
+                                }}
                             >
-                                📂 Categories
+                                <FolderTree className="w-4 h-4" /> Categories
                             </button>
                             {/* AI Upload Button */}
                             <button
                                 onClick={() => setShowAiUpload(true)}
-                                className="px-4 py-2 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-xl text-sm font-medium hover:bg-purple-500/30 transition-all flex items-center gap-2"
+                                className="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 border"
+                                style={{ 
+                                    backgroundColor: 'var(--brand-purple-bg)', 
+                                    color: 'var(--brand-purple)', 
+                                    borderColor: 'var(--brand-purple-border)' 
+                                }}
                             >
-                                🤖 AI Upload
+                                <Bot className="w-4 h-4" /> AI Upload
                             </button>
                             {/* Manual Add Button */}
                             <button
@@ -403,9 +418,9 @@ export default function AdminMenuPage() {
                                     resetForm();
                                     setShowForm(true);
                                 }}
-                                className="btn-gold text-sm py-2"
+                                className="btn-gold text-sm py-2 flex items-center gap-2"
                             >
-                                + Add Item
+                                <Plus className="w-4 h-4" /> Add Item
                             </button>
                         </div>
                     </div>
@@ -445,8 +460,9 @@ export default function AdminMenuPage() {
                     {showForm && (
                         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                             <div className="bg-zayko-800 border border-zayko-700 rounded-2xl p-6 w-full max-w-md animate-scale-in">
-                                <h3 className="text-lg font-display font-bold text-white mb-4">
-                                    {editItem ? "✏️ Edit Item" : "➕ Add New Item"}
+                                <h3 className="flex items-center gap-2 text-lg font-display font-bold text-white mb-4">
+                                    {editItem ? <Edit2 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                                    {editItem ? "Edit Item" : "Add New Item"}
                                 </h3>
 
                                 <div className="space-y-3">
@@ -563,7 +579,7 @@ export default function AdminMenuPage() {
                                                         onClick={() => removeCustomization(cIdx)}
                                                         className="text-red-400 p-2 hover:bg-red-500/10 rounded-lg"
                                                     >
-                                                        ✕
+                                                        <X className="w-4 h-4" />
                                                     </button>
                                                 </div>
 
@@ -599,16 +615,16 @@ export default function AdminMenuPage() {
                                                                 onClick={() => removeOption(cIdx, oIdx)}
                                                                 className="text-zayko-500 hover:text-red-400"
                                                             >
-                                                                ✕
+                                                                <X className="w-4 h-4" />
                                                             </button>
                                                         </div>
                                                     ))}
                                                     <button
                                                         type="button"
                                                         onClick={() => addOption(cIdx)}
-                                                        className="text-[10px] text-zayko-400 hover:text-gold-400 p-1 transition-colors"
+                                                        className="text-[10px] text-zayko-400 hover:text-gold-400 p-1 transition-colors flex items-center gap-1"
                                                     >
-                                                        + Add Option
+                                                        <Plus className="w-3 h-3" /> Add Option
                                                     </button>
                                                 </div>
                                             </div>
@@ -658,8 +674,8 @@ export default function AdminMenuPage() {
                         </div>
                     ) : filteredItems.length === 0 ? (
                         <div className="text-center py-20 text-zayko-500">
-                            <div className="text-5xl mb-4">
-                                {items.length === 0 ? "🍽️" : "🔍"}
+                            <div className="flex justify-center mb-4">
+                                {items.length === 0 ? <Soup className="w-16 h-16 text-zayko-700" /> : <Search className="w-16 h-16 text-zayko-700" />}
                             </div>
                             <p>
                                 {items.length === 0
@@ -711,7 +727,10 @@ export default function AdminMenuPage() {
 
                                     {/* Category */}
                                     <div className="col-span-2 mb-2 lg:mb-0">
-                                        <span className="px-3 py-1 bg-zayko-700 text-zayko-300 text-xs rounded-full capitalize">
+                                        <span 
+                                            className="px-3 py-1 bg-zayko-700 text-xs rounded-full capitalize"
+                                            style={{ color: 'var(--brand-teal)' }}
+                                        >
                                             {item.category}
                                         </span>
                                     </div>
@@ -745,7 +764,7 @@ export default function AdminMenuPage() {
                                             >
                                                 {item.quantity}
                                                 <span className="ml-1 text-zayko-600 text-xs">
-                                                    ✎
+                                                    <Pencil className="w-3 h-3 inline" />
                                                 </span>
                                             </button>
                                         )}
@@ -767,9 +786,12 @@ export default function AdminMenuPage() {
                                                 : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
                                                 }`}
                                         >
-                                            {item.available && item.quantity > 0
-                                                ? "✓ Available"
-                                                : "✗ Unavailable"}
+                                            <span className="flex items-center gap-1">
+                                                {item.available && item.quantity > 0 ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                                                {item.available && item.quantity > 0
+                                                    ? "Available"
+                                                    : "Unavailable"}
+                                            </span>
                                         </button>
                                     </div>
 
@@ -777,15 +799,15 @@ export default function AdminMenuPage() {
                                     <div className="col-span-3 flex gap-2 justify-end">
                                         <button
                                             onClick={() => openEdit(item)}
-                                            className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition-all"
+                                            className="px-3 py-1.5 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition-all flex items-center gap-1.5"
                                         >
-                                            ✏️ Edit
+                                            <Edit2 className="w-3.5 h-3.5" /> Edit
                                         </button>
                                         <button
                                             onClick={() => deleteItem(item.id)}
-                                            className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-xs font-medium hover:bg-red-500/30 transition-all"
+                                            className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-xs font-medium hover:bg-red-500/30 transition-all flex items-center gap-1.5"
                                         >
-                                            🗑️ Delete
+                                            <Trash2 className="w-3.5 h-3.5" /> Delete
                                         </button>
                                     </div>
                                 </div>

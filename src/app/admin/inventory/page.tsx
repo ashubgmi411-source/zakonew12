@@ -4,6 +4,13 @@ import React, { useEffect, useState, useCallback } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { 
+    Package, CircleDollarSign, AlertTriangle, Circle, 
+    ClipboardList, BarChart3, Soup, Utensils, 
+    Edit2, Trash2, Flame, ShoppingCart, 
+    Download, ArrowLeft, Plus, Minus, 
+    X, Save, RefreshCw, Activity, Search, Filter 
+} from "lucide-react";
 
 // ─── Types ───────────────────────────────────────
 
@@ -176,7 +183,7 @@ export default function InventoryPage() {
             });
             const data = await res.json();
             if (data.success) {
-                toast.success("Item added! ✅");
+                toast.success("Item added!");
                 setShowAddDialog(false);
                 resetForm();
                 fetchInventory();
@@ -194,7 +201,7 @@ export default function InventoryPage() {
             });
             const data = await res.json();
             if (data.success) {
-                toast.success("Item updated! ✅");
+                toast.success("Item updated!");
                 setEditItem(null);
                 resetForm();
                 fetchInventory();
@@ -246,7 +253,7 @@ export default function InventoryPage() {
             });
             const data = await res.json();
             if (data.success) {
-                toast.success("Recipe mapping saved! ✅");
+                toast.success("Recipe mapping saved!");
                 fetchRecipeMappings(selectedMenuItemId);
             } else toast.error(data.error);
         } catch { toast.error("Failed to save recipe mapping"); }
@@ -264,7 +271,7 @@ export default function InventoryPage() {
             a.download = `zayko_inventory_${new Date().toISOString().split("T")[0]}.csv`;
             a.click();
             URL.revokeObjectURL(url);
-            toast.success("CSV downloaded! 📥");
+            toast.success("CSV downloaded!");
         } catch { toast.error("Failed to export"); }
     };
 
@@ -289,44 +296,19 @@ export default function InventoryPage() {
     // ─── Render ──────────────────────────────────
 
     return (
-        <AdminGuard>
-            <div className="min-h-screen bg-zayko-900 pb-12">
-                {/* ─── Header ─── */}
-                <div className="bg-zayko-800 border-b border-zayko-700 px-6 py-4">
-                    <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-xl">📦</div>
-                            <div>
-                                <h1 className="text-lg font-display font-bold text-white">Inventory Management</h1>
-                                <p className="text-xs text-zayko-400">Track ingredients, stock & recipes</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto scrollbar-hide">
-                            <Link href="/admin/dashboard" className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-sm rounded-xl transition-all whitespace-nowrap">
-                                ← Dashboard
-                            </Link>
-                            <button onClick={handleExportCSV} className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-sm rounded-xl transition-all whitespace-nowrap">
-                                📥 Export CSV
-                            </button>
-                            <button onClick={() => { setShowAddDialog(true); resetForm(); }} className="btn-gold py-2 px-4 text-sm whitespace-nowrap">
-                                + Add Item
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <>
+            <div className="max-w-7xl mx-auto p-6 space-y-6">
                     {/* ─── Summary Cards ─── */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
                         {[
-                            { label: "Total Items", value: summary.totalItems, icon: "📦", color: "text-blue-400" },
-                            { label: "Total Value", value: `₹${summary.totalValue.toLocaleString()}`, icon: "💰", color: "text-gold-400" },
-                            { label: "Low Stock", value: summary.lowStockCount, icon: "⚠️", color: "text-amber-400" },
-                            { label: "Out of Stock", value: summary.outOfStockCount, icon: "🔴", color: "text-red-400" },
+                            { label: "Total Items", value: summary.totalItems, icon: <Package className="w-5 h-5 text-blue-400" />, color: "text-blue-400" },
+                            { label: "Total Value", value: `₹${summary.totalValue.toLocaleString()}`, icon: <CircleDollarSign className="w-5 h-5 text-gold-400" />, color: "text-gold-400" },
+                            { label: "Low Stock", value: summary.lowStockCount, icon: <AlertTriangle className="w-5 h-5 text-amber-400" />, color: "text-amber-400" },
+                            { label: "Out of Stock", value: summary.outOfStockCount, icon: <Circle className="w-5 h-5 text-red-500 fill-red-500/20" />, color: "text-red-400" },
                         ].map((stat) => (
                             <div key={stat.label} className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-4">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-lg">{stat.icon}</span>
+                                    {stat.icon}
                                     <span className="text-xs text-zayko-400">{stat.label}</span>
                                 </div>
                                 <p className={`text-2xl font-display font-bold ${stat.color}`}>{stat.value}</p>
@@ -337,18 +319,18 @@ export default function InventoryPage() {
                     {/* ─── Tabs ─── */}
                     <div className="flex gap-2 border-b border-zayko-700 pb-0">
                         {[
-                            { key: "inventory" as const, label: "📋 Inventory", onClick: () => setActiveTab("inventory") },
-                            { key: "analytics" as const, label: "📊 Analytics", onClick: () => { setActiveTab("analytics"); fetchAnalytics(); } },
-                            { key: "recipes" as const, label: "🍴 Recipe Mappings", onClick: () => { setActiveTab("recipes"); fetchMenuItems(); } },
+                            { key: "inventory" as const, label: "Inventory", icon: <ClipboardList className="w-4 h-4" />, onClick: () => setActiveTab("inventory") },
+                            { key: "analytics" as const, label: "Analytics", icon: <BarChart3 className="w-4 h-4" />, onClick: () => { setActiveTab("analytics"); fetchAnalytics(); } },
+                            { key: "recipes" as const, label: "Recipes", icon: <Utensils className="w-4 h-4" />, onClick: () => { setActiveTab("recipes"); fetchMenuItems(); } },
                         ].map((tab) => (
                             <button
                                 key={tab.key}
                                 onClick={tab.onClick}
-                                className={`px-4 py-2.5 text-sm font-semibold rounded-t-xl transition-all ${activeTab === tab.key
+                                className={`px-4 py-2.5 text-sm font-semibold rounded-t-xl transition-all flex items-center gap-2 ${activeTab === tab.key
                                     ? "bg-zayko-800 text-white border border-zayko-700 border-b-zayko-800 -mb-[1px]"
                                     : "text-zayko-400 hover:text-white hover:bg-zayko-800/50"}`}
                             >
-                                {tab.label}
+                                {tab.icon} {tab.label}
                             </button>
                         ))}
                     </div>
@@ -372,9 +354,9 @@ export default function InventoryPage() {
                                 </select>
                                 <button
                                     onClick={() => setLowStockOnly(!lowStockOnly)}
-                                    className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border ${lowStockOnly ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-zayko-800 text-zayko-400 border-zayko-700 hover:text-white"}`}
+                                    className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border flex items-center gap-2 ${lowStockOnly ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-zayko-800 text-zayko-400 border-zayko-700 hover:text-white"}`}
                                 >
-                                    {lowStockOnly ? "🔴 Low Stock Only" : "Filter Low Stock"}
+                                    {lowStockOnly ? <><Circle className="w-3 h-3 fill-current" /> Low Stock Only</> : <><Filter className="w-4 h-4" /> Filter Low Stock</>}
                                 </button>
                             </div>
 
@@ -384,8 +366,8 @@ export default function InventoryPage() {
                                     <div className="w-12 h-12 border-4 border-gold-400 border-t-transparent rounded-full animate-spin"></div>
                                 </div>
                             ) : items.length === 0 ? (
-                                <div className="text-center py-20 text-zayko-400">
-                                    <p className="text-4xl mb-4">📦</p>
+                                <div className="text-center py-20 text-zayko-400 flex flex-col items-center">
+                                    <Package className="w-12 h-12 text-zayko-700 mb-4" />
                                     <p className="text-lg font-semibold">No inventory items found</p>
                                     <p className="text-sm mt-2">Click &quot;Add Item&quot; to add your first ingredient</p>
                                 </div>
@@ -413,14 +395,22 @@ export default function InventoryPage() {
                                                         <td className="px-4 py-3 text-right text-white font-mono">{item.currentStock} <span className="text-zayko-500 text-xs">{item.unit}</span></td>
                                                         <td className="px-4 py-3 text-center">{getStatusBadge(item)}</td>
                                                         <td className="px-4 py-3 text-right text-zayko-300">₹{item.costPerUnit}</td>
-                                                        <td className="px-4 py-3 text-right text-gold-400 font-semibold">₹{(item.currentStock * item.costPerUnit).toLocaleString()}</td>
-                                                        <td className="px-4 py-3 text-zayko-400 text-xs">{item.supplierName || "—"}</td>
+                                                        <td className="px-4 py-3 text-right text-white font-mono">₹{(item.currentStock * item.costPerUnit).toLocaleString()}</td>
+                                                        <td className="px-4 py-3 text-zayko-300">{item.supplierName}</td>
                                                         <td className="px-4 py-3">
                                                             <div className="flex items-center justify-center gap-1">
-                                                                <button onClick={() => { setAdjustItem(item); setAdjustForm({ type: "ADD", quantity: 0, reason: "" }); }} className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs transition-all" title="Adjust Stock">±</button>
-                                                                <button onClick={() => { setEditItem(item); setForm({ name: item.name, category: item.category, currentStock: item.currentStock, unit: item.unit, reorderLevel: item.reorderLevel, supplierName: item.supplierName, costPerUnit: item.costPerUnit }); }} className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs transition-all" title="Edit">✏️</button>
-                                                                <button onClick={() => { setLogsItem(item); fetchLogs(item.id); }} className="p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs transition-all" title="View Logs">📋</button>
-                                                                <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs transition-all" title="Delete">🗑️</button>
+                                                                <button onClick={() => { setAdjustItem(item); setAdjustForm({ type: "ADD", quantity: 0, reason: "" }); }} className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-all" title="Adjust Stock">
+                                                                    <Activity className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button onClick={() => { setEditItem(item); setForm({ name: item.name, category: item.category, currentStock: item.currentStock, unit: item.unit, reorderLevel: item.reorderLevel, supplierName: item.supplierName, costPerUnit: item.costPerUnit }); }} className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all" title="Edit">
+                                                                    <Edit2 className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button onClick={() => { setLogsItem(item); fetchLogs(item.id); }} className="p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all" title="View Logs">
+                                                                    <ClipboardList className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all" title="Delete">
+                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                </button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -464,7 +454,9 @@ export default function InventoryPage() {
 
                                     {/* Most Used Ingredients */}
                                     <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6">
-                                        <h3 className="text-lg font-display font-bold text-white mb-4">🔥 Most Used Ingredients (7 Days)</h3>
+                                        <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
+                                            <Flame className="w-5 h-5 text-orange-500" /> Most Used Ingredients (7 Days)
+                                        </h3>
                                         {analytics.mostUsedIngredients.length === 0 ? (
                                             <p className="text-zayko-400 text-sm">No usage data yet</p>
                                         ) : (
@@ -481,7 +473,9 @@ export default function InventoryPage() {
 
                                     {/* Waste Report */}
                                     <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6">
-                                        <h3 className="text-lg font-display font-bold text-white mb-4">🗑️ Waste Report (7 Days)</h3>
+                                        <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
+                                            <Trash2 className="w-5 h-5 text-red-400" /> Waste Report (7 Days)
+                                        </h3>
                                         {analytics.wasteReport.length === 0 ? (
                                             <p className="text-zayko-400 text-sm">No waste recorded</p>
                                         ) : (
@@ -498,9 +492,13 @@ export default function InventoryPage() {
 
                                     {/* Purchase Suggestions */}
                                     <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6">
-                                        <h3 className="text-lg font-display font-bold text-white mb-4">🛒 Purchase Suggestions</h3>
+                                        <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
+                                            <ShoppingCart className="w-5 h-5 text-emerald-400" /> Purchase Suggestions
+                                        </h3>
                                         {analytics.purchaseSuggestions.length === 0 ? (
-                                            <p className="text-zayko-400 text-sm">All stock levels are healthy! ✅</p>
+                                            <p className="text-zayko-400 text-sm flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-400" /> All stock levels are healthy!
+                                            </p>
                                         ) : (
                                             <div className="overflow-x-auto">
                                                 <table className="w-full text-sm">
@@ -539,7 +537,9 @@ export default function InventoryPage() {
                     {activeTab === "recipes" && (
                         <div className="space-y-6 animate-fade-in">
                             <div className="bg-zayko-800/50 border border-zayko-700 rounded-2xl p-6">
-                                <h3 className="text-lg font-display font-bold text-white mb-4">🍴 Menu → Ingredient Recipe Mapping</h3>
+                                <h3 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
+                                    <Utensils className="w-5 h-5 text-gold-400" /> Menu → Ingredient Recipe Mapping
+                                </h3>
                                 <p className="text-xs text-zayko-400 mb-4">Link menu items to raw ingredients so stock is auto-deducted when orders are placed.</p>
 
                                 <select
@@ -557,9 +557,9 @@ export default function InventoryPage() {
                                             <h4 className="text-sm font-bold text-white">Ingredients Required:</h4>
                                             <button
                                                 onClick={() => setRecipeIngredients([...recipeIngredients, { ingredientId: "", ingredientName: "", quantityRequired: 0, unit: "pieces" }])}
-                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-all"
+                                                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all flex items-center gap-1.5"
                                             >
-                                                + Add Ingredient
+                                                <Plus className="w-3.5 h-3.5" /> Add Ingredient
                                             </button>
                                         </div>
 
@@ -575,8 +575,8 @@ export default function InventoryPage() {
                                                     }}
                                                     className="flex-1 bg-zayko-800 border border-zayko-700 rounded-lg px-3 py-2 text-sm text-white"
                                                 >
-                                                    <option value="">Select ingredient...</option>
-                                                    {items.map((inv) => <option key={inv.id} value={inv.id}>{inv.name} ({inv.currentStock} {inv.unit})</option>)}
+                                                    <option value="">Select Ingredient</option>
+                                                    {items.map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
                                                 </select>
                                                 <input
                                                     type="number" min="0" step="0.1" placeholder="Qty" value={ing.quantityRequired || ""}
@@ -584,13 +584,15 @@ export default function InventoryPage() {
                                                     className="w-24 bg-zayko-800 border border-zayko-700 rounded-lg px-3 py-2 text-sm text-white text-center"
                                                 />
                                                 <span className="text-xs text-zayko-400 w-14">{ing.unit}</span>
-                                                <button onClick={() => setRecipeIngredients(recipeIngredients.filter((_, i) => i !== idx))} className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs">✕</button>
+                                                <button onClick={() => setRecipeIngredients(recipeIngredients.filter((_, i) => i !== idx))} className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs">
+                                                    <X className="w-4 h-4" />
+                                                </button>
                                             </div>
                                         ))}
 
                                         {recipeIngredients.length > 0 && (
                                             <button onClick={handleSaveRecipeMapping} disabled={saving} className="btn-gold py-2.5 px-6 text-sm w-full mt-2">
-                                                {saving ? "Saving..." : "Save Recipe Mapping 💾"}
+                                                {saving ? "Saving..." : "Save Recipe Mapping"}
                                             </button>
                                         )}
                                     </div>
@@ -598,15 +600,17 @@ export default function InventoryPage() {
                             </div>
                         </div>
                     )}
-                </div>
-
+                
                 {/* ━━━ DIALOGS ━━━ */}
 
                 {/* Add / Edit Item Dialog */}
                 {(showAddDialog || editItem) && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                         <div className="bg-zayko-800 border border-zayko-700 rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-scale-in">
-                            <h2 className="text-lg font-display font-bold text-white mb-4">{editItem ? "✏️ Edit Item" : "➕ Add Inventory Item"}</h2>
+                            <h2 className="text-lg font-display font-bold text-white mb-4 flex items-center gap-2">
+                                {editItem ? <Edit2 className="w-5 h-5 text-blue-400" /> : <Plus className="w-5 h-5 text-gold-400" />} 
+                                {editItem ? "Edit Item" : "Add Inventory Item"}
+                            </h2>
                             <div className="space-y-3">
                                 <div>
                                     <label className="text-xs text-zayko-400 mb-1 block">Name *</label>
@@ -659,7 +663,7 @@ export default function InventoryPage() {
                 {adjustItem && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                         <div className="bg-zayko-800 border border-zayko-700 rounded-2xl p-6 w-full max-w-md animate-scale-in">
-                            <h2 className="text-lg font-display font-bold text-white mb-2">± Adjust Stock</h2>
+                            <h2 className="text-lg font-display font-bold text-white mb-2">Adjust Stock</h2>
                             <p className="text-sm text-zayko-400 mb-4">{adjustItem.name} — Current: <span className="text-white font-mono">{adjustItem.currentStock} {adjustItem.unit}</span></p>
                             <div className="space-y-3">
                                 <div className="grid grid-cols-3 gap-2">
@@ -667,13 +671,14 @@ export default function InventoryPage() {
                                         <button
                                             key={t}
                                             onClick={() => setAdjustForm({ ...adjustForm, type: t })}
-                                            className={`py-2 rounded-xl text-xs font-bold transition-all border ${adjustForm.type === t
+                                            className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border flex items-center justify-center gap-1.5 ${adjustForm.type === t
                                                 ? t === "ADD" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                                                     : t === "DEDUCT" ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
                                                         : "bg-red-500/20 text-red-400 border-red-500/30"
                                                 : "bg-zayko-900 text-zayko-400 border-zayko-700"}`}
                                         >
-                                            {t === "ADD" ? "➕ Add" : t === "DEDUCT" ? "➖ Deduct" : "🗑️ Waste"}
+                                            {t === "ADD" ? <Plus className="w-3 h-3" /> : t === "DEDUCT" ? <Minus className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
+                                            {t === "ADD" ? "Add" : t === "DEDUCT" ? "Deduct" : "Waste"}
                                         </button>
                                     ))}
                                 </div>
@@ -693,8 +698,12 @@ export default function InventoryPage() {
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                         <div className="bg-zayko-800 border border-zayko-700 rounded-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto animate-scale-in">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-lg font-display font-bold text-white">📋 Stock History — {logsItem.name}</h2>
-                                <button onClick={() => setLogsItem(null)} className="text-zayko-400 hover:text-white text-lg">✕</button>
+                                <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+                                    <ClipboardList className="w-5 h-5 text-purple-400" /> Stock History — {logsItem.name}
+                                </h2>
+                                <button onClick={() => setLogsItem(null)} className="text-zayko-400 hover:text-white transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
                             {logs.length === 0 ? (
                                 <p className="text-zayko-400 text-sm text-center py-8">No stock logs yet</p>
@@ -719,6 +728,6 @@ export default function InventoryPage() {
                     </div>
                 )}
             </div>
-        </AdminGuard>
+        </>
     );
 }
