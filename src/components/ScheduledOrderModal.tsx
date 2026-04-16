@@ -33,6 +33,23 @@ export default function ScheduledOrderModal({
 
     const [date, setDate] = useState("");
     const [time, setTime] = useState("");
+
+    // Set smart defaults (Today + 1 hour) when component mounts or resets
+    useEffect(() => {
+        if (!date && isOpen) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            setDate(`${year}-${month}-${day}`);
+            
+            // Default to 1 hour from now
+            now.setHours(now.getHours() + 1);
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            setTime(`${hours}:${minutes}`);
+        }
+    }, [isOpen, date]);
     const [paymentMethod, setPaymentMethod] = useState<"wallet" | "razorpay">("wallet");
     const [submitting, setSubmitting] = useState(false);
     const [scheduledOrders, setScheduledOrders] = useState<ScheduledOrder[]>([]);
@@ -40,11 +57,13 @@ export default function ScheduledOrderModal({
     const [activeTab, setActiveTab] = useState<"create" | "history">("create");
     const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-    // Set minimum date to tomorrow
+    // Set minimum date to today
     const getMinDate = () => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split("T")[0];
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     // Fetch user's scheduled orders
