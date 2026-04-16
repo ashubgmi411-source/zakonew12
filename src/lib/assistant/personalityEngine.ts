@@ -49,6 +49,7 @@ export function buildSystemPrompt(config: PersonalityConfig): string {
 RULES:
 - Reply in 15-20 words MAX.
 - ALWAYS fill the "suggestions" array with item NAMES.
+- CRITICAL: Favor items from RECOMMENDATION HINT for the "suggestions" list.
 - Never suggest items for a category they don't belong to. (Check [Category] in menu).
 - BUDGET: If user says budget (e.g. ₹200), only suggest items within that.
 - TIME: If user is in hurry, suggest items with lowest [Time].
@@ -57,7 +58,7 @@ RULES:
 
 USER: ${firstName} | Wallet: ₹${walletBalance}
 ${emotionHint}
-${recommendationHint ? `RECOMMENDATION HINT: ${recommendationHint}` : ""}
+${recommendationHint ? `RECOMMENDATION HINT: ${recommendationHint}\nNote: Put these exact item names in your "suggestions" array.` : ""}
 
 MENU: (Format: Name ₹Price [Category|PrepTime])
 ${menuListStr}

@@ -10,6 +10,11 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
+const ELEVENLABS_KEYS = (process.env.ELEVENLABS_KEYS || ELEVENLABS_API_KEY)
+    .split(",")
+    .map(k => k.trim())
+    .filter(Boolean);
+
 const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Rachel - friendly female
 
 const hasPollyCreds =
@@ -25,47 +30,51 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid text" }, { status: 400 });
         }
 
-        // Try ElevenLabs first (more reliable, better voice)
-        if (ELEVENLABS_API_KEY) {
-            try {
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 4000);
+        // Try ElevenLabs with multi-key failover
+        if (ELEVENLABS_KEYS.length > 0) {
+            for (const key of ELEVENLABS_KEYS) {
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 4000);
 
-                const response = await fetch(
-                    `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "xi-api-key": ELEVENLABS_API_KEY,
-                        },
-                        body: JSON.stringify({
-                            text,
-                            model_id: "eleven_multilingual_v2",
-                            voice_settings: {
-                                stability: 0.5,
-                                similarity_boost: 0.75,
+                    const response = await fetch(
+                        `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "xi-api-key": key,
                             },
-                        }),
-                        signal: controller.signal,
+                            body: JSON.stringify({
+                                text,
+                                model_id: "eleven_multilingual_v2",
+                                voice_settings: {
+                                    stability: 0.5,
+                                    similarity_boost: 0.75,
+                                },
+                            }),
+                            signal: controller.signal,
+                        }
+                    );
+
+                    clearTimeout(timeout);
+
+                    if (response.ok) {
+                        const audioBuffer = await response.arrayBuffer();
+                        return new NextResponse(audioBuffer, {
+                            status: 200,
+                            headers: {
+                                "Content-Type": "audio/mpeg",
+                                "Cache-Control": "no-cache",
+                            },
+                        });
                     }
-                );
 
-                clearTimeout(timeout);
-
-                if (response.ok) {
-                    const audioBuffer = await response.arrayBuffer();
-                    return new NextResponse(audioBuffer, {
-                        status: 200,
-                        headers: {
-                            "Content-Type": "audio/mpeg",
-                            "Cache-Control": "no-cache",
-                        },
-                    });
+                    // If we got a 401 or 429, log and try next key
+                    console.error(`[TTS] ElevenLabs key failure (${response.status}). Trying next key if available.`);
+                } catch (elError: any) {
+                    console.error("[TTS] ElevenLabs request failed:", elError.message);
                 }
-                console.error("[TTS] ElevenLabs:", response.status);
-            } catch (elError: any) {
-                console.error("[TTS] ElevenLabs failed:", elError.message);
             }
         }
 

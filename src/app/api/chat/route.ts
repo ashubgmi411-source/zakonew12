@@ -115,6 +115,7 @@ RESPONSE FORMAT — Always respond with valid JSON only:
   "orderItems": [
     { "itemName": "item name", "quantity": 1 }
   ],
+  "suggestedItemIds": ["id1", "id2"],
   "message": "Your conversational reply here"
 }
 
@@ -193,7 +194,7 @@ Keep it extremely short and concise! NO long explanations.`;
 
         // ── ORDER ENGINE: execute_order action (user confirmed an order) ──
         if (action === "execute_order" && cart && cart.length > 0 && userProfile) {
-            if (!isCanteenOpen) {
+            if (!canteenIsOpen) {
                 return NextResponse.json({
                     status: "ERROR",
                     message: `Canteen abhi band hai! Khulne ka time hai: ${canteenTiming}. Jab open hogi tab order karna, please.`,
@@ -337,6 +338,7 @@ Keep it extremely short and concise! NO long explanations.`;
                             .join("\n");
                         return NextResponse.json({
                             message: `Yeh sabse jaldi milne wale items hain 🚀\n\n${list}\n\nOrder karna hai toh cart mein add karo!`,
+                            suggestedItemIds: menuSnap.docs.map(d => d.id),
                             provider: "faq",
                         });
                     } catch (e) {
@@ -364,6 +366,7 @@ Keep it extremely short and concise! NO long explanations.`;
                             .join("\n");
                         return NextResponse.json({
                             message: `Here's a quick combo suggestion 🍽️\n\n${list}\n\n💰 Total: ₹${total}\n⏱️ Ready in ~${maxPrep} min\n\nCart mein add karo aur order place karo!`,
+                            suggestedItemIds: combo.map((_, i) => menuSnap.docs[i].id),
                             provider: "faq",
                         });
                     } catch (e) {
@@ -401,7 +404,7 @@ Keep it extremely short and concise! NO long explanations.`;
 
         // ── Block Output if LLM Hallucinates Order While Closed ──
         if (parsedLLMResp?.action === "ORDER") {
-            if (!isCanteenOpen) {
+            if (!canteenIsOpen) {
                 parsedLLMResp = { 
                     action: "CHAT", 
                     message: `Canteen abhi band hai yaar! Khulne ka time hai: ${canteenTiming}. Abhi order place nahi ho sakta 😔` 

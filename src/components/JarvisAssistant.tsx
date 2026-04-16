@@ -214,6 +214,16 @@ export default function JarvisAssistant() {
                     // Just spoke back the response
                     toast.success(`Ziva says: ${data.message || "Done!"}`);
                     speak(data.message || "Done!");
+
+                    // Handle AI Recommendations/Suggestions
+                    if (data.suggestedItemIds && Array.isArray(data.suggestedItemIds) && data.suggestedItemIds.length > 0) {
+                        console.log("Ziva: New suggestions received", data.suggestedItemIds);
+                        sessionStorage.setItem("ziva_suggestions", JSON.stringify(data.suggestedItemIds));
+                        // Dispatch custom event for MenuPage to pick up
+                        window.dispatchEvent(new CustomEvent("ziva:suggestions-updated", { 
+                            detail: { itemIds: data.suggestedItemIds } 
+                        }));
+                    }
                 }
             } else {
                 console.error("Ziva API failed:", res.status, data);

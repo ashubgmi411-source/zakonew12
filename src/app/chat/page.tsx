@@ -177,6 +177,16 @@ function ChatPageInner() {
 
             const data = await res.json();
             addMessage("assistant", data.message);
+
+            // Handle AI Recommendations/Suggestions
+            if (data.suggestedItemIds && Array.isArray(data.suggestedItemIds) && data.suggestedItemIds.length > 0) {
+                console.log("Chat: New suggestions received", data.suggestedItemIds);
+                sessionStorage.setItem("ziva_suggestions", JSON.stringify(data.suggestedItemIds));
+                // Dispatch custom event for MenuPage to pick up
+                window.dispatchEvent(new CustomEvent("ziva:suggestions-updated", { 
+                    detail: { itemIds: data.suggestedItemIds } 
+                }));
+            }
         } catch {
             addMessage("assistant", "Sorry, I'm having trouble right now. Please try again! 🙏");
         }

@@ -36,6 +36,7 @@ export default function MenuPage() {
   const [canteenConfig, setCanteenConfig] = useState<CanteenConfig | null>(null);
   const [categories, setCategories] = useState<CategoryDoc[]>([]);
   const [cartPulse, setCartPulse] = useState(false);
+  const [suggestedIds, setSuggestedIds] = useState<string[]>([]);
 
   useEffect(() => {
     // Note: Guest users can see the menu. They are redirected to login only when interacting with cart/orders.
@@ -82,6 +83,29 @@ export default function MenuPage() {
       return () => clearTimeout(t);
     }
   }, [itemCount]);
+
+  // Handle AI Suggestions
+  useEffect(() => {
+    // 1. Initial load from sessionStorage
+    const saved = sessionStorage.getItem("ziva_suggestions");
+    if (saved) {
+      try {
+        setSuggestedIds(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse saved suggestions", e);
+      }
+    }
+
+    // 2. Listen for custom events from assistant
+    const handleSuggestions = (e: any) => {
+      if (e.detail?.itemIds) {
+        setSuggestedIds(e.detail.itemIds);
+      }
+    };
+
+    window.addEventListener("ziva:suggestions-updated", handleSuggestions);
+    return () => window.removeEventListener("ziva:suggestions-updated", handleSuggestions);
+  }, []);
 
   // Compute minutes until canteen closes
   const getMinutesUntilClose = (): number | null => {
@@ -331,6 +355,51 @@ export default function MenuPage() {
           </div>
           <TrendingCarousel items={availableItems} />
         </motion.section>
+      )}
+
+      {/* ══════════════════════════════════════
+          AI SUGGESTIONS SECTION
+         ══════════════════════════════════════ */}
+      {suggestedIds.length > 0 && (
+         <motion.section
+           className="mt-4 mb-4 relative z-10"
+           initial={{ opacity: 0, x: -20 }}
+           animate={{ opacity: 1, x: 0 }}
+           transition={{ duration: 0.5 }}
+         >
+           <div className="px-4 sm:px-6 max-w-7xl mx-auto flex items-center justify-between mb-5">
+             <div className="flex items-center gap-3">
+               <div className="w-1 h-7 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" />
+               <div>
+                 <div className="flex items-center gap-2">
+                    <h2 className="text-lg sm:text-xl font-display font-bold text-white">Suggested for You</h2>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 animate-pulse">ZIVA AI</span>
+                 </div>
+                 <p className="text-[10px] sm:text-xs text-zayko-500">Based on your conversation</p>
+               </div>
+             </div>
+             <button 
+                onClick={() => {
+                    setSuggestedIds([]);
+                    sessionStorage.removeItem("ziva_suggestions");
+                }}
+                className="text-[10px] text-zayko-400 hover:text-white transition-colors"
+             >
+                Clear picks
+             </button>
+           </div>
+           
+           <div className="px-4 sm:px-6 max-w-7xl mx-auto overflow-x-auto scrollbar-hide flex gap-4 pb-4">
+                {menuItems
+                    .filter(item => suggestedIds.includes(item.id))
+                    .map((item, index) => (
+                        <div key={`sug-${item.id}`} className="w-[280px] sm:w-[320px] shrink-0">
+                            <MenuCard {...item} index={index} />
+                        </div>
+                    ))
+                }
+           </div>
+         </motion.section>
       )}
 
       <div className="px-4 sm:px-6 max-w-7xl mx-auto mt-5 sm:mt-6 space-y-8 sm:space-y-10 relative z-10">

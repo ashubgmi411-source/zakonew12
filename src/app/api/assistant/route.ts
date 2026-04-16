@@ -157,6 +157,13 @@ export async function POST(req: NextRequest) {
             if (recs.message) {
                 recommendationHint = recs.message;
             }
+            // Store recs names for final suggestions
+            const recNames = [
+                ...recs.intentPicks.map(p => p.name),
+                ...recs.timePicks.map(p => p.name),
+                ...recs.personalPicks.map(p => p.name)
+            ];
+            ctx.lastRecommendedNames = Array.from(new Set(recNames));
         } catch (e) {
             console.warn("[Assistant] Rec error:", e);
         }
@@ -437,7 +444,15 @@ export async function POST(req: NextRequest) {
             if (recommendationHint) {
                 parsed.message = parsed.message || recommendationHint;
             }
-            // Add suggestion names
+            // Add suggestion names from recommendation engine if LLM didn't provide specific ones
+            if (suggestions.length <= 2) {
+                const smartSuggestions = getContext(uid).lastRecommendedNames || [];
+                if (smartSuggestions.length > 0) {
+                    suggestions = Array.from(new Set([...suggestions, ...smartSuggestions])).slice(0, 6);
+                }
+            }
+            
+            // Final fallback to generic menu items
             if (suggestions.length === 0) {
                 suggestions = availableMenu.slice(0, 5).map((m) => m.name);
             }

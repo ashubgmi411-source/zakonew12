@@ -26,6 +26,7 @@ export interface ConversationContext {
     lastIntent: "ORDER" | "MENU_QUERY" | "WALLET_QUERY" | "RECOMMENDATION" | "GENERAL_CHAT" | null;
     lastOrderedItems: OrderedItemMemory[];
     lastSuggestedItems: string[];
+    lastRecommendedNames?: string[];
     lastUpsellItems: string[];
     pendingConfirmation: boolean;
     pendingOrder: OrderedItemMemory[] | null;
@@ -66,6 +67,7 @@ export function getContext(userId: string, userName: string = "Guest"): Conversa
         lastIntent: null,
         lastOrderedItems: [],
         lastSuggestedItems: [],
+        lastRecommendedNames: [],
         lastUpsellItems: [],
         pendingConfirmation: false,
         pendingOrder: null,
