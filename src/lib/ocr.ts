@@ -12,8 +12,39 @@ export async function extractTextFromImage(
 ): Promise<string> {
     try {
         console.log(`[OCR] Starting text extraction (type: ${mimeType})...`);
+        
+        const nvidiaKey = process.env.NVIDIA_OCR_KEY;
+        if (nvidiaKey) {
+            try {
+                console.log("[OCR] Attempting NVIDIA High-Precision OCR...");
+                const base64Data = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
+                
+                const nvResponse = await fetch("https://ai.api.nvidia.com/v1/cv/nvidia/ocrmaster", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${nvidiaKey}`,
+                        "Accept": "application/json",
+                    },
+                    body: JSON.stringify({ image: base64Data }),
+                });
 
-        // Ensure the base64 string doesn't have the data prefix if it was passed with one
+                if (nvResponse.ok) {
+                    const nvData = await nvResponse.json();
+                    // Extract text from NVIDIA response (standard NIM OCR format)
+                    const extracted = nvData.description || nvData.text || (nvData.annotations?.map((a: any) => a.description).join(" "));
+                    if (extracted) {
+                        console.log("[OCR] NVIDIA OCR successful.");
+                        return extracted;
+                    }
+                }
+                console.warn("[OCR] NVIDIA OCR returned no text, falling back to Tesseract.");
+            } catch (nvErr) {
+                console.warn("[OCR] NVIDIA OCR failed, falling back to Tesseract:", nvErr);
+            }
+        }
+
+        // Tesseract Fallback
         const base64Data = base64Image.includes(",")
             ? base64Image.split(",")[1]
             : base64Image;

@@ -92,9 +92,9 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
         if (!SpeechRecognition) return null;
 
         const recognition = new SpeechRecognition();
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = "en-IN";
+        recognition.lang = "hi-IN";
         
         recognition.onresult = (event: any) => {
             let finalStr = "";
@@ -104,7 +104,7 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
                 else interimStr += event.results[i][0].transcript;
             }
             if (interimStr) setInterimTranscript(interimStr);
-            if (finalStr && activeProvider === "browser") {
+            if (finalStr) {
                 setTranscript(finalStr);
                 setInterimTranscript("");
                 if (onFinalTranscriptRef.current) onFinalTranscriptRef.current(finalStr);

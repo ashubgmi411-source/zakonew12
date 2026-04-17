@@ -23,8 +23,8 @@ export interface AIProviderAdapter {
     supportsVision: boolean;
     /** Whether this provider supports text-based reasoning */
     supportsText: boolean;
-    /** Generate text from a text prompt */
-    generateText(prompt: string, systemPrompt?: string): Promise<string>;
+    /** Generate text from a text prompt or message history */
+    generateText(prompt: string | any[], systemPrompt?: string): Promise<string>;
     /** Generate text from an image + prompt (only if supportsVision is true) */
     generateFromImage?(
         base64Image: string,
@@ -43,12 +43,26 @@ export function getGeminiProvider(apiKey: string): AIProviderAdapter {
         supportsVision: true,
         supportsText: true,
 
-        async generateText(prompt: string, systemPrompt?: string): Promise<string> {
+        async generateText(prompt: string | any[], systemPrompt?: string): Promise<string> {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({
                 model: "gemini-2.0-flash",
                 ...(systemPrompt ? { systemInstruction: systemPrompt } : {}),
             });
+            
+            if (Array.isArray(prompt)) {
+                // Gemini "chat" format is { role: "user" | "model", parts: [{ text: string }] }
+                // We'll map the standard { role, content } format
+                const history = prompt.slice(0, -1).map(m => ({
+                    role: m.role === "assistant" ? "model" : "user",
+                    parts: [{ text: m.content }]
+                }));
+                const lastMessage = prompt[prompt.length - 1].content;
+                const chat = model.startChat({ history });
+                const result = await chat.sendMessage(lastMessage);
+                return result.response.text();
+            }
+            
             const result = await model.generateContent(prompt);
             return result.response.text();
         },
@@ -79,11 +93,17 @@ export function getGroqProvider(apiKey: string): AIProviderAdapter {
         supportsVision: true, // Groq supports vision via Llama 3.2 vision
         supportsText: true,
 
-        async generateText(prompt: string, systemPrompt?: string): Promise<string> {
+        async generateText(prompt: string | any[], systemPrompt?: string): Promise<string> {
             const groq = new Groq({ apiKey });
-            const messages: Array<{ role: "system" | "user"; content: string }> = [];
+            let messages: any[] = [];
+            
             if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
-            messages.push({ role: "user", content: prompt });
+
+            if (Array.isArray(prompt)) {
+                messages = [...messages, ...prompt];
+            } else {
+                messages.push({ role: "user", content: prompt });
+            }
 
             const completion = await groq.chat.completions.create({
                 messages,
@@ -137,11 +157,17 @@ export function getCohereProvider(apiKey: string): AIProviderAdapter {
         supportsVision: false,
         supportsText: true,
 
-        async generateText(prompt: string, systemPrompt?: string): Promise<string> {
+        async generateText(prompt: string | any[], systemPrompt?: string): Promise<string> {
             const cohere = new CohereClientV2({ token: apiKey });
-            const messages: Array<{ role: "system" | "user"; content: string }> = [];
+            let messages: any[] = [];
+            
             if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
-            messages.push({ role: "user", content: prompt });
+
+            if (Array.isArray(prompt)) {
+                messages = [...messages, ...prompt];
+            } else {
+                messages.push({ role: "user", content: prompt });
+            }
 
             const response = await cohere.chat({
                 model: "command-r-plus",
@@ -151,7 +177,7 @@ export function getCohereProvider(apiKey: string): AIProviderAdapter {
             const content = response.message?.content;
             if (Array.isArray(content)) {
                 return content
-                    .map((c) => (typeof c === "string" ? c : (c as { text?: string }).text || ""))
+                    .map((c: any) => (typeof c === "string" ? c : (c as { text?: string }).text || ""))
                     .join("");
             }
             return typeof content === "string" ? content : "";
@@ -169,8 +195,15 @@ export function getPoeProvider(apiKey: string): AIProviderAdapter {
         supportsVision: true,
         supportsText: true,
 
-        async generateText(prompt: string, systemPrompt?: string): Promise<string> {
-            const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
+        async generateText(prompt: string | any[], systemPrompt?: string): Promise<string> {
+            let messages: any[] = [];
+            if (Array.isArray(prompt)) {
+                messages = prompt;
+                if (systemPrompt) messages = [{ role: "system", content: systemPrompt }, ...messages];
+            } else {
+                const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
+                messages = [{ role: "user", content: fullPrompt }];
+            }
 
             const response = await fetch("https://api.poe.com/bot/ChatGPT", {
                 method: "POST",
@@ -179,7 +212,7 @@ export function getPoeProvider(apiKey: string): AIProviderAdapter {
                     Authorization: `Bearer ${apiKey}`,
                 },
                 body: JSON.stringify({
-                    query: [{ role: "user", content: fullPrompt }],
+                    query: messages,
                     temperature: 0.7,
                 }),
             });
@@ -227,6 +260,56 @@ export function getPoeProvider(apiKey: string): AIProviderAdapter {
 
             const data = await response.json();
             return data.text || data.response || data.content || "";
+        },
+    };
+}
+
+// ──────────────────────────────────────────────────
+// NVIDIA Chat Provider (NIM)
+// ──────────────────────────────────────────────────
+
+export function getNvidiaChatProvider(apiKey: string): AIProviderAdapter {
+    return {
+        name: "nvidia",
+        supportsVision: false,
+        supportsText: true,
+
+        async generateText(prompt: string | any[], systemPrompt?: string): Promise<string> {
+            try {
+                let messages: any[] = [];
+                if (systemPrompt) messages.push({ role: "system", content: systemPrompt });
+
+                if (Array.isArray(prompt)) {
+                    messages = [...messages, ...prompt];
+                } else {
+                    messages.push({ role: "user", content: prompt });
+                }
+
+                const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify({
+                        model: "meta/llama-3.1-405b-instruct",
+                        messages,
+                        temperature: 0.6,
+                        max_tokens: 2048,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`NVIDIA NIM HTTP ${response.status}: ${errText}`);
+                }
+
+                const data = await response.json();
+                return data.choices?.[0]?.message?.content || "";
+            } catch (error) {
+                console.error("[NvidiaProvider] LLM failed:", error);
+                throw error;
+            }
         },
     };
 }

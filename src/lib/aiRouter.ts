@@ -13,6 +13,7 @@ import {
     getGroqProvider,
     getCohereProvider,
     getPoeProvider,
+    getNvidiaChatProvider,
     type AIProviderAdapter,
 } from "@/lib/aiProviders";
 import { extractTextFromImage } from "@/lib/ocr";
@@ -31,7 +32,7 @@ export interface AIResponse<T = string> {
 }
 
 /** Supported provider names */
-export type ProviderName = "gemini" | "poe" | "groq" | "cohere";
+export type ProviderName = "gemini" | "poe" | "groq" | "cohere" | "nvidia";
 
 /** Configuration for the AI router */
 interface RouterConfig {
@@ -80,6 +81,7 @@ function getKeysForProvider(provider: ProviderName): string[] {
         groq: "GROQ_API_KEY",
         cohere: "COHERE_API_KEY",
         poe: "POE_API_KEY",
+        nvidia: "NVIDIA_LLM_KEY",
     };
 
     const allKeys: string[] = [];
@@ -154,7 +156,7 @@ function isAuthError(error: unknown): boolean {
     );
 }
 
-const PROVIDER_ORDER: ProviderName[] = ["gemini", "poe", "groq", "cohere"];
+const PROVIDER_ORDER: ProviderName[] = ["nvidia", "gemini", "poe", "groq", "cohere"];
 
 function getProviderAdapter(provider: ProviderName, apiKey: string): AIProviderAdapter {
     switch (provider) {
@@ -162,6 +164,7 @@ function getProviderAdapter(provider: ProviderName, apiKey: string): AIProviderA
         case "groq": return getGroqProvider(apiKey);
         case "cohere": return getCohereProvider(apiKey);
         case "poe": return getPoeProvider(apiKey);
+        case "nvidia": return getNvidiaChatProvider(apiKey);
     }
 }
 
@@ -173,7 +176,7 @@ function getProviderAdapter(provider: ProviderName, apiKey: string): AIProviderA
  * Run a text-based AI request with fallback.
  */
 export async function runTextAI(
-    prompt: string,
+    prompt: string | any[],
     systemPrompt?: string,
     config: Partial<RouterConfig> = {}
 ): Promise<AIResponse<string>> {
@@ -329,3 +332,5 @@ export function getRouterHealth(): Record<string, { available: boolean; failures
     }
     return health;
 }
+
+export const runAI = runTextAI;

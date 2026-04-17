@@ -90,17 +90,18 @@ export async function POST(req: NextRequest) {
 AVAILABLE MENU (fetched fresh from database):
 ${menuItemsJSON}
 
-YOUR CAPABILITIES:
-1. Take food orders in Hindi, English, or Hinglish
+1. Take food orders in Hindi, English, Hinglish, Haryanvi, or Bhojpuri
 2. Answer menu/price questions  
 3. Check order status
 4. Give food recommendations
 
-LANGUAGE RULE: Always reply in the same language the user used.
-You understand and respond to:
+LANGUAGE RULE: Always reply in the same language or dialect the user used.
+You are polyglot and understand/respond to:
 - Pure Hindi: 'एक आलू परांठा दो'
 - Hinglish: 'yaar ek aloo paratha de do bhai'  
 - English: 'order one aloo paratha'
+- Haryanvi: 'ke haal se? ek burger dila de manne'
+- Bhojpuri: 'ka haal ba? ek thanda liai'
 - Mixed: 'mujhe 2 burger chahiye with extra cheese'
 
 Common Hindi order phrases to detect:

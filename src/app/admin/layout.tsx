@@ -2,6 +2,7 @@
 import React from "react";
 import AdminGuard from "@/components/AdminGuard";
 import AdminHeader from "@/components/admin/AdminHeader";
+import AdminZiva from "@/components/admin/AdminZiva";
 import { usePathname } from "next/navigation";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <main className="animate-fade-in">
                     {children}
                 </main>
+                {/* Global Admin AI Assistant */}
+                <AdminZiva />
             </div>
         </AdminGuard>
     );
