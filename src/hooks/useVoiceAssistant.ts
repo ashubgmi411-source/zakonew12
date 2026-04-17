@@ -174,6 +174,12 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
         }
     };
 
+    // ── Helper: Detect Mobile ──
+    const isMobile = useCallback(() => {
+        if (typeof window === "undefined") return false;
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }, []);
+
     // ── Start listening ──
     const startListening = useCallback(async () => {
         setIsListening(true);
@@ -188,18 +194,34 @@ export function useVoiceAssistant({ onFinalTranscript }: UseVoiceAssistantProps 
             window.speechSynthesis.speak(u);
         }
 
-        // Try Server ASR (NVIDIA) first if enabled, while keeping Browser ASR as live-preview
-        setActiveProvider("nvidia-parakeet");
-        startRecording();
-        
-        if (recognitionRef.current) {
+        const mobile = isMobile();
+        console.log(`[VoiceAssistant] Starting on ${mobile ? "mobile" : "desktop"}`);
+
+        if (mobile && recognitionRef.current) {
+            // On mobile, prioritize native SpeechRecognition to avoid conflicts
+            // Many mobile browsers (Chrome Android) block one if the other is recording
+            setActiveProvider("browser");
             try {
+                recognitionRef.current.lang = "hi-IN"; // Better for Hinglish on mobile
                 recognitionRef.current.start();
             } catch (e) {
-                console.warn("Recognition already active");
+                console.warn("Recognition already active", e);
+            }
+        } else {
+            // On desktop, use both: NVIDIA for high accuracy + Browser for live preview
+            setActiveProvider("nvidia-parakeet");
+            startRecording();
+            
+            if (recognitionRef.current) {
+                try {
+                    recognitionRef.current.lang = "en-IN";
+                    recognitionRef.current.start();
+                } catch (e) {
+                    console.warn("Recognition already active", e);
+                }
             }
         }
-    }, [initRecognition]);
+    }, [isMobile, startRecording]);
 
     const stopListening = useCallback(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {

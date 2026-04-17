@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
         }, { status: 503 });
 
     } catch (error) {
-        console.error("[ASR] API error:", error);
+        const ua = req.headers.get("user-agent") || "unknown";
+        console.error(`[ASR] API error from UA: ${ua}`, error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
